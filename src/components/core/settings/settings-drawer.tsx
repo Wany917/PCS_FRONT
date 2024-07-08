@@ -1,6 +1,4 @@
-'use client';
-
-import * as React from 'react';
+import React from 'react';
 import Badge from '@mui/material/Badge';
 import Drawer from '@mui/material/Drawer';
 import IconButton from '@mui/material/IconButton';
@@ -8,6 +6,7 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { ArrowCounterClockwise as ArrowCounterClockwiseIcon } from '@phosphor-icons/react/dist/ssr/ArrowCounterClockwise';
 import { X as XIcon } from '@phosphor-icons/react/dist/ssr/X';
+import MyChatbot from './chatbot/MyChatbot';
 
 import type { Settings } from '@/types/settings';
 
@@ -44,7 +43,7 @@ export function SettingsDrawer({
   return (
     <Drawer
       ModalProps={{ BackdropProps: { invisible: true }, sx: { zIndex: 1400 } }}
-      PaperProps={{ elevation: 24, sx: { display: 'flex', flexDirection: 'column', maxWidth: '100%', width: '440px' } }}
+      PaperProps={{ elevation: 24, sx: { display: 'flex', flexDirection: 'column', maxWidth: '100%', width: '440px', height: '100%' } }}
       anchor="right"
       disableScrollLock
       onClose={onClose}
@@ -68,7 +67,7 @@ export function SettingsDrawer({
           </IconButton>
         </Stack>
       </Stack>
-      <Stack spacing={5} sx={{ overflowY: 'auto', p: 3 }}>
+      <Stack spacing={5} sx={{ overflowY: 'auto', p: 3, flex: 1 }}>
         <OptionsPrimaryColor
           onChange={(value) => {
             handleChange('primaryColor', value);
@@ -100,6 +99,9 @@ export function SettingsDrawer({
           value={values.direction}
         />
       </Stack>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <MyChatbot />
+      </div>
     </Drawer>
   );
 }
