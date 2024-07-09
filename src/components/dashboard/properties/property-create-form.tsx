@@ -39,6 +39,7 @@ import { Customer } from '@/types/customer';
 import { useGetUsers } from '@/api/users';
 import axios, { endpoints } from '@/lib/axios';
 import { useTranslation } from 'react-i18next';
+import { useGetFacilities } from '@/api/facilities';
 
 export interface Image {
   id: string;
@@ -55,29 +56,6 @@ const schema = zod.object({
   city: zod.string().min(1, 'City is required'),
   zipCode: zod.string().min(1, 'Zip code is required'),
   line1: zod.string().min(1, 'Address is required'),
-  amenities: zod.object({
-    wifi: zod.boolean(),
-    kitchen: zod.boolean(),
-    washer: zod.boolean(),
-    dryer: zod.boolean(),
-    airConditioning: zod.boolean(),
-    heating: zod.boolean(),
-    television: zod.boolean(),
-    hairDryer: zod.boolean(),
-    iron: zod.boolean(),
-    pool: zod.boolean(),
-    jacuzzi: zod.boolean(),
-    freeParking: zod.boolean(),
-    evCharger: zod.boolean(),
-    crib: zod.boolean(),
-    kingBed: zod.boolean(),
-    gym: zod.boolean(),
-    barbecue: zod.boolean(),
-    breakfast: zod.boolean(),
-    fireplace: zod.boolean(),
-    smokeDetector: zod.boolean(),
-    coDetector: zod.boolean(),
-  }),
   price: zod.coerce.number().min(1, 'Price must be greater than or equal to 0'),
   images: zod.array(zod.object({ id: zod.string(), url: zod.string(), fileName: zod.string() })),
   bedrooms: zod.coerce
@@ -107,29 +85,6 @@ const defaultValues: Values = {
   city: '',
   zipCode: '',
   line1: '',
-  amenities: {
-    wifi: false,
-    kitchen: false,
-    washer: false,
-    dryer: false,
-    airConditioning: false,
-    heating: false,
-    television: false,
-    hairDryer: false,
-    iron: false,
-    pool: false,
-    jacuzzi: false,
-    freeParking: false,
-    evCharger: false,
-    crib: false,
-    kingBed: false,
-    gym: false,
-    barbecue: false,
-    breakfast: false,
-    fireplace: false,
-    smokeDetector: false,
-    coDetector: false,
-  },
   price: 0,
   images: [],
   bedrooms: 1,
@@ -237,12 +192,12 @@ export function PropertyCreateForm(): React.JSX.Element {
   } = useForm<Values>({ defaultValues, resolver: zodResolver(schema) });
 
   const { users, usersLoading } = useGetUsers();
+  const { facilities, facilitiesLoading } = useGetFacilities();
+  const [selectedFacilities, setSelectedFacilities] = React.useState<number[]>([]);
 
   const onSubmit = React.useCallback(
     async (values: Values): Promise<void> => {
       try {
-        console.log('Property data:', values);
-
         // Convertir les données en FormData
         const formData = new FormData();
         formData.append('title', values.title);
@@ -259,7 +214,10 @@ export function PropertyCreateForm(): React.JSX.Element {
         formData.append('beds', values.beds.toString());
         formData.append('userId', values.userId.toString());
         formData.append('isPrivate', values.isPrivate ? 'true' : 'false');
-  
+        selectedFacilities.forEach(facilityId => {
+          formData.append('facilities[]', facilityId.toString());
+        });
+
         if (values.images && values.images.length > 0) {
           values.images.forEach((image, index) => {
             const file = base64ToFile(image.url);
@@ -269,8 +227,8 @@ export function PropertyCreateForm(): React.JSX.Element {
 
         const response = await axios.post(endpoints.properties.post, formData, {
           headers: {
-            'Content-Type': 'multipart/form-data'
-          }
+            'Content-Type': 'multipart/form-data',
+          },
         });
 
         if (response.status === 201 || response.status === 200) {
@@ -284,7 +242,7 @@ export function PropertyCreateForm(): React.JSX.Element {
         toast.error(t('somethingWentWrong'));
       }
     },
-    [router, t]
+    [router, t, selectedFacilities]
   );
 
   const handleImageDrop = React.useCallback(
@@ -324,30 +282,6 @@ export function PropertyCreateForm(): React.JSX.Element {
   const bedrooms = watch('bedrooms');
   const bathrooms = watch('bathrooms');
   const beds = watch('beds');
-
-  const amenitiesList = [
-    { key: 'wifi', label: t('wifi') },
-    { key: 'kitchen', label: t('kitchen') },
-    { key: 'washer', label: t('washer') },
-    { key: 'dryer', label: t('dryer') },
-    { key: 'airConditioning', label: t('airConditioning') },
-    { key: 'heating', label: t('heating') },
-    { key: 'television', label: t('television') },
-    { key: 'hairDryer', label: t('hairDryer') },
-    { key: 'iron', label: t('iron') },
-    { key: 'pool', label: t('pool') },
-    { key: 'jacuzzi', label: t('jacuzzi') },
-    { key: 'freeParking', label: t('freeParking') },
-    { key: 'evCharger', label: t('evCharger') },
-    { key: 'crib', label: t('crib') },
-    { key: 'kingBed', label: t('kingBed') },
-    { key: 'gym', label: t('gym') },
-    { key: 'barbecue', label: t('barbecue') },
-    { key: 'breakfast', label: t('breakfast') },
-    { key: 'fireplace', label: t('fireplace') },
-    { key: 'smokeDetector', label: t('smokeDetector') },
-    { key: 'coDetector', label: t('coDetector') },
-  ];
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
@@ -597,26 +531,31 @@ export function PropertyCreateForm(): React.JSX.Element {
                 <Stack spacing={3}>
                   <Typography variant="h6">{t('amenities')}</Typography>
                   <Grid container spacing={3}>
-                    {amenitiesList.map((amenity) => (
-                      <Grid key={amenity.key} md={6} xs={12}>
-                        <Controller
-                          control={control}
-                          name={`amenities.${amenity.key}` as const}
-                          render={({ field }) => (
+                    {!facilitiesLoading
+                      ? facilities.map((facility: { id: number; name: string }) => (
+                          <Grid key={facility.id} md={6} xs={12}>
                             <FormControlLabel
                               control={
                                 <Checkbox
-                                  {...field}
-                                  checked={field.value}
-                                  onChange={(event) => field.onChange(event.target.checked)}
+                                  onChange={() => {
+                                    if (selectedFacilities.includes(facility.id)) {
+                                      setSelectedFacilities(() =>
+                                        selectedFacilities.filter((id) => id !== facility.id)
+                                      );
+                                    } else {
+                                      setSelectedFacilities(() => [
+                                        ...selectedFacilities,
+                                        facility.id,
+                                      ]);
+                                    }
+                                  }}
                                 />
                               }
-                              label={amenity.label}
+                              label={facility.name}
                             />
-                          )}
-                        />
-                      </Grid>
-                    ))}
+                          </Grid>
+                        ))
+                      : null}
                   </Grid>
                 </Stack>
                 <Stack spacing={3}>
@@ -756,3 +695,7 @@ export function PropertyCreateForm(): React.JSX.Element {
     </form>
   );
 }
+function setState(arg0: (prevState: any) => { selectedFacilities: any; }) {
+  throw new Error('Function not implemented.');
+}
+
