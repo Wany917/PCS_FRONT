@@ -695,7 +695,4 @@ export function PropertyCreateForm(): React.JSX.Element {
     </form>
   );
 }
-function setState(arg0: (prevState: any) => { selectedFacilities: any; }) {
-  throw new Error('Function not implemented.');
-}
 

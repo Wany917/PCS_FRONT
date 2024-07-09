@@ -51,7 +51,7 @@ export const layoutConfig = {
           key: 'facilities',
           title: 'Facilities',
           href: paths.dashboard.facilities.list,
-          icon: 'buildings',
+          icon: 'hardHat',
         },
         {
           key: 'calendar',

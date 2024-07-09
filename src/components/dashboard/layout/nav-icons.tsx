@@ -30,6 +30,8 @@ import { Users as UsersIcon } from '@phosphor-icons/react/dist/ssr/Users';
 import { WarningDiamond as WarningDiamondIcon } from '@phosphor-icons/react/dist/ssr/WarningDiamond';
 import { BuildingApartment as BuildingApartmentIcon } from '@phosphor-icons/react/dist/ssr/BuildingApartment';
 import { Briefcase as BriefcaseIcon } from '@phosphor-icons/react/dist/ssr/Briefcase';
+import { HardHat as HardHat } from '@phosphor-icons/react/dist/ssr/HardHat';
+
 export const icons = {
   'address-book': AddressBookIcon,
   'align-left': AlignLeftIcon,
@@ -62,5 +64,7 @@ export const icons = {
   users: UsersIcon,
   briefcase: BriefcaseIcon,
   'building-apartment': BuildingApartmentIcon,
+  'hardHat': HardHat,
+
 
 } as Record<string, Icon>;
