@@ -1,6 +1,29 @@
-import useSWR from 'swr';
+import useSWR, { mutate } from 'swr';
 import { useMemo } from 'react';
+import axios from 'axios';
 import { fetcher, endpoints } from '../lib/axios';
+
+export interface Property {
+  id: number;
+  title: string;
+  description: string;
+  propertyType: string;
+  country: string;
+  state: string;
+  city: string;
+  zipCode: string;
+  line1: string;
+  price: string;
+  bedrooms: number;
+  bathrooms: number;
+  beds: number;
+  isPrivate: boolean;
+  userId: number;
+  createdAt: string;
+  updatedAt: string;
+  propertyImages: string[];
+  facilities: string[];
+}
 
 export interface PropertyFilters {
   category?: string;
@@ -12,13 +35,27 @@ export interface PropertyFilters {
   sortDir?: 'asc' | 'desc';
 }
 
+interface ApiResponse {
+  meta: {
+    total: number;
+    perPage: number;
+    currentPage: number;
+    lastPage: number;
+    firstPage: number;
+    firstPageUrl: string;
+    lastPageUrl: string;
+    nextPageUrl: string | null;
+    previousPageUrl: string | null;
+  };
+  data: Property[];
+}
+
 export function useGetProperties(filters: PropertyFilters = {}) {
-  // Construct the query string based on filters
   const queryParams = new URLSearchParams();
   
   Object.entries(filters).forEach(([key, value]) => {
     if (value) {
-      if (Array.isArray(value)) { // Handle range filters specially
+      if (Array.isArray(value)) {
         queryParams.append(`${key}Min`, value[0].toString());
         queryParams.append(`${key}Max`, value[1].toString());
       } else {
@@ -30,7 +67,7 @@ export function useGetProperties(filters: PropertyFilters = {}) {
   const queryString = queryParams.toString();
   const URL = `${endpoints.properties.list}?${queryString}`;
 
-  const { data, error, isValidating } = useSWR(URL, fetcher);
+  const { data, error, isValidating } = useSWR<ApiResponse>(URL, fetcher);
 
   const memoizedValue = useMemo(() => {
     if (error) {
@@ -41,9 +78,41 @@ export function useGetProperties(filters: PropertyFilters = {}) {
       propertiesLoading: !data && !error,
       propertiesError: error,
       propertiesValidating: isValidating,
-      propertiesEmpty: data?.data && data.data.length === 0,
+      propertiesEmpty: data?.data.length === 0,
     };
   }, [data, error, isValidating]);
 
   return memoizedValue;
+}
+
+export async function createProperty(propertyData: Property): Promise<Property> {
+  try {
+    const response = await axios.post<Property>(endpoints.properties.create, propertyData);
+    mutate(endpoints.properties.list);
+    return response.data;
+  } catch (error) {
+    console.error('Failed to create property', error);
+    throw error;
+  }
+}
+
+export async function updateProperty(id: number, propertyData: Partial<Property>): Promise<Property> {
+  try {
+    const response = await axios.put<Property>(endpoints.properties.update(id), propertyData);
+    mutate(endpoints.properties.get(id));
+    return response.data;
+  } catch (error) {
+    console.error('Failed to update property', error);
+    throw error;
+  }
+}
+
+export async function deleteProperty(id: number): Promise<void> {
+  try {
+    await axios.delete(endpoints.properties.delete(id));
+    mutate(endpoints.properties.list);
+  } catch (error) {
+    console.error('Failed to delete property', error);
+    throw error;
+  }
 }

@@ -5,7 +5,7 @@ const axiosInstance = axios.create({ baseURL: 'http://localhost:3333' });
 
 axiosInstance.interceptors.response.use(
   (res) => res,
-  (error) => Promise.reject((error.response && error.response.data) || 'Something went wrong')
+  (error) => Promise.reject((error.response?.data) || 'Something went wrong')
 );
 
 export default axiosInstance;
@@ -37,6 +37,7 @@ export const endpoints = {
       get: (avatarId: string) => `http://localhost:3333/uploads/avatar/${avatarId}`,
       put : (userId: number) => `/users/${userId}/avatar/`,
     },
+    delete: (userId: number) => `/users/${userId}`,
   },
   societies: {
     get: (societyId: number) => `/societies/${societyId}`,
@@ -49,9 +50,11 @@ export const endpoints = {
     },
   },
   properties: {
-    get: (propertyId: string) => `/properties/${propertyId}`,
     list: '/properties',
-    post: '/properties',
+    get: (id: number) => `/properties/${id}`,
+    create: '/properties',
+    update: (id: number) => `/properties/${id}`,
+    delete: (id: number) => `/properties/${id}`
   },
   orders: {
     get: (orderId: number) => `/orders/${orderId}`,
@@ -62,5 +65,10 @@ export const endpoints = {
     get: (facilityId: number) => `/facilities/${facilityId}`,
     list: '/facilities',
     post: '/facilities',
+  },
+  invoices: {
+    get: (invoiceId: number) => `/invoices/${invoiceId}`,
+    list: '/invoices',
+    post: '/invoices',
   },
 };

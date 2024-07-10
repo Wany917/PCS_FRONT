@@ -114,7 +114,7 @@ export default function Page(): React.JSX.Element {
     }
   }, [user, userLoading, resetCustomer, resetAddress]);
 
-  const mapping: { [key: string]: { label: string; icon: JSX.Element } } = {
+  const mapping: Record<string, { label: string; icon: JSX.Element }> = {
     active: {
       label: t('active'),
       icon: <CheckCircleIcon color="var(--mui-palette-success-main)" weight="fill" />,
@@ -133,7 +133,7 @@ export default function Page(): React.JSX.Element {
       try {
         const response = await axios.put(endpoints.users.put(user.id), values);
 
-        if (response.data && response.data.message) {
+        if (response.data?.message) {
           mutate(endpoints.users.get(user.id));
           setIsEditingCustomer(false);
           setIsEditingCustomerAddress(false);
@@ -202,7 +202,7 @@ export default function Page(): React.JSX.Element {
                   <CardHeader
                     action={
                       !isEditingCustomer && (
-                        <IconButton onClick={() => setIsEditingCustomer(true)}>
+                        <IconButton onClick={() => { setIsEditingCustomer(true); }}>
                           <PencilSimpleIcon />
                         </IconButton>
                       )
@@ -256,9 +256,7 @@ export default function Page(): React.JSX.Element {
                                 <FormControl error={Boolean(error)} fullWidth>
                                   <InputLabel required>{key}</InputLabel>
                                   <OutlinedInput {...field} />
-                                  {errorsCustomer && (
-                                    <FormHelperText>{error?.message}</FormHelperText>
-                                  )}
+                                  {errorsCustomer ? <FormHelperText>{error?.message}</FormHelperText> : null}
                                 </FormControl>
                               )}
                             />
@@ -269,29 +267,27 @@ export default function Page(): React.JSX.Element {
                       />
                     ))}
                   </PropertyList>
-                  {isEditingCustomer && (
-                    <CardActions sx={{ justifyContent: 'flex-end' }}>
+                  {isEditingCustomer ? <CardActions sx={{ justifyContent: 'flex-end' }}>
                       <Stack
                         direction="row"
-                        spacing={2}
                         justifyContent="flex-end"
+                        spacing={2}
                         sx={{ padding: 2 }}
                       >
-                        <Button type="submit" variant="contained" color="primary">
+                        <Button color="primary" type="submit" variant="contained">
                           {t('save')}
                         </Button>
                         <Button
+                          color="secondary"
                           onClick={() => {
                             setIsEditingCustomer(false);
                             resetCustomer();
                           }}
-                          color="secondary"
                         >
                           {t('cancel')}
                         </Button>
                       </Stack>
-                    </CardActions>
-                  )}
+                    </CardActions> : null}
                 </Card>
               </form>
               <form onSubmit={handleSubmitAddress(onSubmit)}>
@@ -299,7 +295,7 @@ export default function Page(): React.JSX.Element {
                   <CardHeader
                     action={
                       !isEditingCustomerAddress && (
-                        <IconButton onClick={() => setIsEditingCustomerAddress(true)}>
+                        <IconButton onClick={() => { setIsEditingCustomerAddress(true); }}>
                           <PencilSimpleIcon />
                         </IconButton>
                       )
@@ -356,9 +352,7 @@ export default function Page(): React.JSX.Element {
                                 <FormControl error={Boolean(error)} fullWidth>
                                   <InputLabel required>{key}</InputLabel>
                                   <OutlinedInput {...field} />
-                                  {errorsAddress && (
-                                    <FormHelperText>{error?.message}</FormHelperText>
-                                  )}
+                                  {errorsAddress ? <FormHelperText>{error?.message}</FormHelperText> : null}
                                 </FormControl>
                               )}
                             />
@@ -386,29 +380,27 @@ export default function Page(): React.JSX.Element {
                       </Grid>
                     </CardContent>
                   )}
-                  {isEditingCustomerAddress && (
-                    <CardActions sx={{ justifyContent: 'flex-end' }}>
+                  {isEditingCustomerAddress ? <CardActions sx={{ justifyContent: 'flex-end' }}>
                       <Stack
                         direction="row"
-                        spacing={2}
                         justifyContent="flex-end"
+                        spacing={2}
                         sx={{ padding: 2 }}
                       >
-                        <Button type="submit" variant="contained" color="primary">
+                        <Button color="primary" type="submit" variant="contained">
                           {t('save')}
                         </Button>
                         <Button
+                          color="secondary"
                           onClick={() => {
                             setIsEditingCustomerAddress(false);
                             resetAddress();
                           }}
-                          color="secondary"
                         >
                           {t('cancel')}
                         </Button>
                       </Stack>
-                    </CardActions>
-                  )}
+                    </CardActions> : null}
                 </Card>
               </form>
               <Card>
@@ -479,37 +471,6 @@ export default function Page(): React.JSX.Element {
                 refundsValue={324.5}
                 totalOrders={5}
               />
-              <Card>
-                <CardHeader
-                  action={
-                    <Button color="secondary" startIcon={<PencilSimpleIcon />}>
-                      {t('edit')}
-                    </Button>
-                  }
-                  avatar={
-                    <Avatar>
-                      <CreditCardIcon fontSize="var(--Icon-fontSize)" />
-                    </Avatar>
-                  }
-                  title={t('billingDetails')}
-                />
-                <CardContent>
-                  <Card sx={{ borderRadius: 1 }} variant="outlined">
-                    <PropertyList divider={<Divider />} sx={{ '--PropertyItem-padding': '16px' }}>
-                      {[
-                        { key: t('creditCard'), value: '**** 4142' },
-                        { key: t('country'), value: t('countryValue') },
-                        { key: t('state'), value: 'Michigan' },
-                        { key: t('city'), value: 'Southfield' },
-                        { key: t('address'), value: '1721 Bartlett Avenue, 48034' },
-                        { key: t('taxId'), value: 'EU87956621' },
-                      ].map((item) => (
-                        <PropertyItem key={item.key} name={item.key} value={item.value} />
-                      ))}
-                    </PropertyList>
-                  </Card>
-                </CardContent>
-              </Card>
               <Notifications
                 notifications={[
                   {

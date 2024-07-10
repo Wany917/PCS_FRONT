@@ -7,6 +7,34 @@ import { logger } from '@/lib/default-logger';
 
 import type { UserContextValue } from '../types';
 import axios, { endpoints } from '@/lib/axios';
+import axiosInstance from '@/lib/axios';
+
+export const instance = axios.create({
+  baseURL: process.env.HOST_API_URL,
+
+});
+
+axiosInstance.interceptors.request.use( async (config) => {
+  const token = sessionStorage.getItem('accessToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  } else {
+    delete config.headers.Authorization;
+  }
+  return config;
+},
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+axiosInstance.interceptors.response.use((response) => response, (error) => {
+  if (error.response?.status === 401) {
+    sessionStorage.removeItem('accessToken');
+  }
+  return Promise.reject(error);
+});
+
 
 export const UserContext = React.createContext<UserContextValue | undefined>(undefined);
 
@@ -25,7 +53,7 @@ export function UserProvider({ children }: UserProviderProps): React.JSX.Element
     try {
       const response = await axios.get(endpoints.auth.me);
 
-      if (response.data && response.data.error) {
+      if (response.data?.error) {
         logger.error(response.data.error.message);
         setState((prev) => ({ ...prev, user: null, error: null, isLoading: false }));
         return;

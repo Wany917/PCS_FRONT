@@ -87,11 +87,11 @@ export function SignInForm(): React.JSX.Element {
       try {
         const response = await axios.post(endpoints.auth.login, values);
 
-        if (response.data && response.data.token) {
-          setSession(response.data.token);
+        if (response.data?.accessToken as string) {
+          setSession(response.data.accessToken);
         }
 
-        if (response.data && response.data.error) {
+        if (response.data?.error) {
           setError('root', { type: 'server', message: response.data.error });
           setIsPending(false);
           return;

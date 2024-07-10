@@ -12,34 +12,36 @@ import { CheckCircle as CheckCircleIcon } from '@phosphor-icons/react/dist/ssr/C
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
 import { Image as ImageIcon } from '@phosphor-icons/react/dist/ssr/Image';
+import { Trash as TrashIcon } from '@phosphor-icons/react/dist/ssr/Trash';
 
 import { paths } from '@/paths';
 import type { ColumnDef } from '@/components/core/data-table';
 import { DataTable } from '@/components/core/data-table';
 import { useTranslation } from 'react-i18next';
 
-export interface Product {
-  id: string;
-  name: string;
+export interface Property {
+  id: number;
+  title: string;
   image: string | null;
   category: string;
   type: string;
   quantity: number;
-  currency: string;
-  price: number;
+  currency?: string;
+  price: string;
   sku: string;
   status: 'published' | 'draft';
   createdAt: Date;
 }
 
-export interface ProductsTableProps {
-  rows?: Product[];
+export interface PropertiesTableProps {
+  rows?: Property[];
+  onDelete: (id: number) => void;
 }
 
-export function PropertiesTable({ rows = [] }: ProductsTableProps): React.JSX.Element {
+export function PropertiesTable({ rows = [], onDelete }: PropertiesTableProps): React.JSX.Element {
   const { t } = useTranslation();
 
-  const columns: ColumnDef<Product>[] = [
+  const columns: ColumnDef<Property>[] = [
     {
       formatter: (row): React.JSX.Element => (
         <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
@@ -78,11 +80,11 @@ export function PropertiesTable({ rows = [] }: ProductsTableProps): React.JSX.El
             <Link
               color="text.primary"
               component={RouterLink}
-              href={paths.dashboard.properties.preview('1')}
+              href={paths.dashboard.properties.preview(row.id)}
               sx={{ whiteSpace: 'nowrap' }}
               variant="subtitle2"
             >
-              {row.name}
+              {row.title}
             </Link>
             <Typography color="text.secondary" variant="body2">
               {t('in')} {row.category}
@@ -97,7 +99,7 @@ export function PropertiesTable({ rows = [] }: ProductsTableProps): React.JSX.El
     { field: 'quantity', name: t('stock'), width: '100px' },
     {
       formatter(row) {
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency: row.currency }).format(row.price);
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: row.currency || 'USD' }).format(parseFloat(row.price));
       },
       name: t('price'),
       width: '150px',
@@ -119,10 +121,15 @@ export function PropertiesTable({ rows = [] }: ProductsTableProps): React.JSX.El
       width: '150px',
     },
     {
-      formatter: (): React.JSX.Element => (
-        <IconButton component={RouterLink} href={paths.dashboard.properties.preview('1')}>
-          <EyeIcon />
-        </IconButton>
+      formatter: (row): React.JSX.Element => (
+        <Stack direction="row" spacing={1}>
+          <IconButton component={RouterLink} href={paths.dashboard.properties.preview(row.id)}>
+            <EyeIcon />
+          </IconButton>
+          <IconButton onClick={() => { onDelete(row.id); }}>
+            <TrashIcon />
+          </IconButton>
+        </Stack>
       ),
       name: t('actions'),
       hideName: true,
@@ -133,11 +140,11 @@ export function PropertiesTable({ rows = [] }: ProductsTableProps): React.JSX.El
 
   return (
     <React.Fragment>
-      <DataTable<Product> columns={columns} rows={rows} />
+      <DataTable<Property> columns={columns} rows={rows} />
       {!rows.length ? (
         <Box sx={{ p: 3 }}>
           <Typography color="text.secondary" sx={{ textAlign: 'center' }} variant="body2">
-            {t('noProductsFound')}
+            {t('noPropertiesFound')}
           </Typography>
         </Box>
       ) : null}

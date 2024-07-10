@@ -27,7 +27,6 @@ import { DynamicLogo } from '@/components/core/logo';
 import { toast } from '@/components/core/toaster';
 import { logger } from '@/lib/default-logger';
 import axios, { endpoints } from '@/lib/axios';
-import { setSession } from '@/lib/jwt';
 
 interface OAuthProvider {
   id: 'google' | 'discord';
@@ -87,15 +86,14 @@ export function SignUpForm(): React.JSX.Element {
       setIsPending(true);
       try {
         const response = await axios.post(endpoints.auth.register, values);
-
-        if (response.data && response.data.id) {
+        if (response.data?.accessToken as string) {
           router.push(paths.auth.signIn);
         }
 
-        if (response.data && response.data.error) {
+        if (response.data?.error) {
           setError('root', { type: 'server', message: response.data.error });
           setIsPending(false);
-          return;
+          
         }
       } catch (err) {
         logger.error(err);
