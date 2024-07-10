@@ -20,11 +20,7 @@ import { FacilitiesFilters } from '@/components/dashboard/facilities/facilities-
 
 export default function FacilitiesPage(): React.JSX.Element {
   const { t } = useTranslation();
-  const { facilities, isLoading } = useGetFacilities();
-
-  if (isLoading) {
-    return <Typography>Loading...</Typography>;
-  }
+  const { facilities, facilitiesLoading } = useGetFacilities();
 
   return (
     <Box
@@ -47,7 +43,7 @@ export default function FacilitiesPage(): React.JSX.Element {
               startIcon={<PlusIcon />}
               variant="contained"
             >
-              {t('addFacility')}
+              {t('add')}
             </Button>
           </Box>
         </Stack>

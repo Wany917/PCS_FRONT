@@ -9,7 +9,7 @@ import TableRow from '@mui/material/TableRow';
 interface Facility {
   id: string;
   name: string;
-  description: string;
+  createdAt: string;
 }
 
 interface FacilitiesTableProps {
@@ -23,14 +23,14 @@ export const FacilitiesTable: React.FC<FacilitiesTableProps> = ({ rows }) => {
         <TableHead>
           <TableRow>
             <TableCell>Name</TableCell>
-            <TableCell>Description</TableCell>
+            <TableCell>Created At</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
           {rows.map((row) => (
             <TableRow key={row.id}>
               <TableCell>{row.name}</TableCell>
-              <TableCell>{row.description}</TableCell>
+              <TableCell>{row.createdAt}</TableCell>
             </TableRow>
           ))}
         </TableBody>

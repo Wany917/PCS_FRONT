@@ -20,8 +20,6 @@ import { Option } from '@/components/core/option';
 // The tabs should be generated using API data.
 const tabs = [
   { label: 'All', value: '', count: 10 },
-  { label: 'Available', value: 'available', count: 6 },
-  { label: 'Occupied', value: 'occupied', count: 4 },
 ] as const;
 
 export interface Filters {
