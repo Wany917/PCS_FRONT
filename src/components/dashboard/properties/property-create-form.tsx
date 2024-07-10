@@ -35,7 +35,7 @@ import type { EditorEvents } from '@tiptap/react';
 import type { File } from '@/components/core/file-dropzone';
 import type { ColumnDef } from '@/components/core/data-table';
 import { Autocomplete, IconButton, TextField } from '@mui/material';
-import { Customer } from '@/types/customer';
+import type { Customer } from '@/types/customer';
 import { useGetUsers } from '@/api/users';
 import axios, { endpoints } from '@/lib/axios';
 import { useTranslation } from 'react-i18next';
@@ -109,7 +109,7 @@ function fileToBase64(file: Blob): Promise<string> {
 
 function base64ToFile(base64: string): Blob {
   // Extract MIME type from the base64 string header
-  const matches = base64.match(/^data:(.*?);base64,/);
+  const matches = /^data:(.*?);base64,/.exec(base64);
   const mimeType = matches && matches[1] ? matches[1] : 'image/jpeg'; // Default to image/jpeg
 
   // Extract pure base64 data without header
@@ -225,7 +225,7 @@ export function PropertyCreateForm(): React.JSX.Element {
           });
         }
 
-        const response = await axios.post(endpoints.properties.post, formData, {
+        const response = await axios.post(endpoints.properties.create, formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
           },
@@ -411,7 +411,7 @@ export function PropertyCreateForm(): React.JSX.Element {
                         render={({ field }) => (
                           <FormControl error={Boolean(errors.price)} fullWidth>
                             <InputLabel required>{t('price')}</InputLabel>
-                            <OutlinedInput {...field} type="number" inputProps={{ min: 1 }} />
+                            <OutlinedInput {...field} inputProps={{ min: 1 }} type="number" />
                             {errors.price ? (
                               <FormHelperText>{errors.price.message}</FormHelperText>
                             ) : null}
@@ -428,8 +428,8 @@ export function PropertyCreateForm(): React.JSX.Element {
                             <InputLabel required>{t('bedrooms')}</InputLabel>
                             <OutlinedInput
                               {...field}
-                              type="number"
                               inputProps={{ min: 1, max: 8 }}
+                              type="number"
                             />
                             {errors.bedrooms ? (
                               <FormHelperText>{errors.bedrooms.message}</FormHelperText>
@@ -462,8 +462,8 @@ export function PropertyCreateForm(): React.JSX.Element {
                             <InputLabel required>{t('beds')}</InputLabel>
                             <OutlinedInput
                               {...field}
-                              type="number"
                               inputProps={{ min: 1, max: 8 }}
+                              type="number"
                             />
                             {errors.beds ? (
                               <FormHelperText>{errors.beds.message}</FormHelperText>
@@ -479,7 +479,6 @@ export function PropertyCreateForm(): React.JSX.Element {
                         render={({ field }) => (
                           <Autocomplete
                             {...field}
-                            options={users}
                             getOptionLabel={(option: Customer) =>
                               option.firstname && option.lastname
                                 ? `${option.firstname} ${option.lastname}`
@@ -488,17 +487,18 @@ export function PropertyCreateForm(): React.JSX.Element {
                             isOptionEqualToValue={(option: Customer, value: Customer) =>
                               option.id === value.id
                             }
-                            value={users.find((user: Customer) => user.id === field.value) || null}
-                            onChange={(_, newValue) => field.onChange(newValue?.id)}
                             loading={usersLoading}
+                            onChange={(_, newValue) => { field.onChange(newValue?.id); }}
+                            options={users}
                             renderInput={(params) => (
                               <TextField
                                 {...params}
-                                label={t('owner')}
                                 error={field.value === null}
                                 helperText={field.value === null ? t('ownerRequired') : null}
+                                label={t('owner')}
                               />
                             )}
+                            value={users.find((user: Customer) => user.id === field.value) || null}
                           />
                         )}
                       />
@@ -529,7 +529,7 @@ export function PropertyCreateForm(): React.JSX.Element {
                   </Grid>
                 </Stack>
                 <Stack spacing={3}>
-                  <Typography variant="h6">{t('amenities')}</Typography>
+                  <Typography variant="h6">{t('Facilities')}</Typography>
                   <Grid container spacing={3}>
                     {!facilitiesLoading
                       ? facilities.map((facility: { id: number; name: string }) => (
