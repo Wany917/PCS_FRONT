@@ -1,118 +1,41 @@
-import useSWR, { mutate } from 'swr';
+import useSWR from 'swr';
 import { useMemo } from 'react';
-import axios from 'axios';
 import { fetcher, endpoints } from '../lib/axios';
 
-export interface Property {
-  id: number;
-  title: string;
-  description: string;
-  propertyType: string;
-  country: string;
-  state: string;
-  city: string;
-  zipCode: string;
-  line1: string;
-  price: string;
-  bedrooms: number;
-  bathrooms: number;
-  beds: number;
-  isPrivate: boolean;
-  userId: number;
-  createdAt: string;
-  updatedAt: string;
-  propertyImages: string[];
-  facilities: string[];
-}
+export function useGetProperties() {
+  const URL = endpoints.properties.list;
 
-export interface PropertyFilters {
-  category?: string;
-  country?: string;
-  priceRange?: [number, number];
-  roomNumber?: number;
-  squareMetersRange?: [number, number];
-  status?: 'published' | 'draft';
-  sortDir?: 'asc' | 'desc';
-}
+  const { data, isLoading, error, isValidating } = useSWR(URL, fetcher);
 
-interface ApiResponse {
-  meta: {
-    total: number;
-    perPage: number;
-    currentPage: number;
-    lastPage: number;
-    firstPage: number;
-    firstPageUrl: string;
-    lastPageUrl: string;
-    nextPageUrl: string | null;
-    previousPageUrl: string | null;
-  };
-  data: Property[];
-}
-
-export function useGetProperties(filters: PropertyFilters = {}) {
-  const queryParams = new URLSearchParams();
-  
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value) {
-      if (Array.isArray(value)) {
-        queryParams.append(`${key}Min`, value[0].toString());
-        queryParams.append(`${key}Max`, value[1].toString());
-      } else {
-        queryParams.append(key, value.toString());
-      }
-    }
-  });
-
-  const queryString = queryParams.toString();
-  const URL = `${endpoints.properties.list}?${queryString}`;
-
-  const { data, error, isValidating } = useSWR<ApiResponse>(URL, fetcher);
-
-  const memoizedValue = useMemo(() => {
-    if (error) {
-      console.error(error);
-    }
-    return {
+  const memoizedValue = useMemo(
+    () => ({
       properties: data?.data || [],
-      propertiesLoading: !data && !error,
+      propertiesLoading: isLoading,
       propertiesError: error,
       propertiesValidating: isValidating,
-      propertiesEmpty: data?.data.length === 0,
-    };
-  }, [data, error, isValidating]);
+      propertiesEmpty: !isLoading && !data?.data.length,
+    }),
+    [data?.data, error, isLoading, isValidating]
+  );
 
   return memoizedValue;
 }
 
-export async function createProperty(propertyData: Property): Promise<Property> {
-  try {
-    const response = await axios.post<Property>(endpoints.properties.create, propertyData);
-    mutate(endpoints.properties.list);
-    return response.data;
-  } catch (error) {
-    console.error('Failed to create property', error);
-    throw error;
-  }
-}
+export function useGetProperty(propertyId: number) {
+  const URL = endpoints.properties.get(propertyId);
+  console.log(URL);
 
-export async function updateProperty(id: number, propertyData: Partial<Property>): Promise<Property> {
-  try {
-    const response = await axios.put<Property>(endpoints.properties.update(id), propertyData);
-    mutate(endpoints.properties.get(id));
-    return response.data;
-  } catch (error) {
-    console.error('Failed to update property', error);
-    throw error;
-  }
-}
+  const { data, isLoading, error, isValidating } = useSWR(URL, fetcher);
 
-export async function deleteProperty(id: number): Promise<void> {
-  try {
-    await axios.delete(endpoints.properties.delete(id));
-    mutate(endpoints.properties.list);
-  } catch (error) {
-    console.error('Failed to delete property', error);
-    throw error;
-  }
+  const memoizedValue = useMemo(
+    () => ({
+      property: data || {},
+      propertyLoading: isLoading,
+      propertyError: error,
+      propertyValidating: isValidating,
+    }),
+    [data, error, isLoading, isValidating]
+  );
+
+  return memoizedValue;
 }

@@ -1,6 +1,6 @@
 "use client";
 import * as React from 'react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -15,53 +15,44 @@ import Grid from '@mui/material/Unstable_Grid2';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import { dayjs } from '@/lib/dayjs';
+import { useGetProperties } from '@/api/properties';
 
 interface Project {
-  id: string;
+  id: number;
   title: string;
   description: string;
-  images: string[];
-  location: string;
-  type: string;
-  author: { name: string; avatar?: string };
-  currency: string;
-  budget: number;
-  rating: number;
-  createdAt: Date;
+  propertyType: string;
+  country: string;
+  state: string;
+  city: string;
+  zipCode: string;
+  line1: string;
+  price: string;
+  bedrooms: number;
+  bathrooms: number;
+  beds: number;
+  isPrivate: boolean;
+  userId: number;
+  createdAt: string;
+  updatedAt: string;
+  propertyImages: string[];
 }
 
-const projects: Project[] = [
-  {
-    id: 'LG-001',
-    title: 'Modern Apartment in City Center',
-    description: 'A stylish and modern apartment located in the heart of the city.',
-    images: [
-      '/assets/apartment-city-center.jpg',
-      '/assets/apartment-city-center-2.jpg',
-      '/assets/apartment-city-center-3.jpg',
-    ],
-    location: 'Hotel de ville, Paris',
-    type: 'Rent',
-    author: { name: 'John Doe', avatar: '/assets/avatar-1.png' },
-    currency: 'USD',
-    budget: 3000,
-    rating: 4.8,
-    createdAt: dayjs().subtract(2, 'day').toDate(),
-  },
-  // Add other projects here
-];
-
 export function GridList2(): React.JSX.Element {
-  const [isClient, setIsClient] = useState(false);
+  const { properties, propertiesLoading, propertiesError } = useGetProperties();
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  if (propertiesLoading) {
+    return <Typography>Loading...</Typography>;
+  }
+
+  if (propertiesError) {
+    return <Typography>Error loading properties.</Typography>;
+  }
 
   return (
     <Box sx={{ bgcolor: 'var(--mui-palette-background-level1)', p: 3 }}>
       <Grid container spacing={3}>
-        {isClient && projects.map((project) => (
+        {properties.map((project: Project) => (
           <Grid key={project.id} md={4} sm={6} xs={12}>
             <ProjectCard project={project} />
           </Grid>
@@ -80,12 +71,12 @@ function ProjectCard({ project }: ProjectCardProps): React.JSX.Element {
 
   const handleNextImage = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
-    setCurrentImageIndex((prevIndex) => (prevIndex + 1) % project.images.length);
+    setCurrentImageIndex((prevIndex) => (prevIndex + 1) % project.propertyImages.length);
   };
 
   const handlePrevImage = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
-    setCurrentImageIndex((prevIndex) => (prevIndex - 1 + project.images.length) % project.images.length);
+    setCurrentImageIndex((prevIndex) => (prevIndex - 1 + project.propertyImages.length) % project.propertyImages.length);
   };
 
   return (
@@ -116,13 +107,14 @@ function ProjectCard({ project }: ProjectCardProps): React.JSX.Element {
         </IconButton>
         <CardMedia
           component="img"
-          image={project.images[currentImageIndex]}
+          src={project.propertyImages[currentImageIndex] || '/assets/apartment-city-center.jpg'}
+          onError={(e) => { e.currentTarget.src = '/assets/apartment-city-center.jpg'; }}
           sx={{ bgcolor: 'var(--mui-palette-background-level2)', height: '200px' }}
         />
       </Box>
       <Stack spacing={2} sx={{ flex: '1 1 auto', p: 2 }}>
         <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
-          <Avatar src={project.author.avatar} />
+          <Avatar src="/assets/avatar-placeholder.png" />
           <div>
             <Typography color="text.primary" variant="subtitle1">
               {project.title}
@@ -130,7 +122,7 @@ function ProjectCard({ project }: ProjectCardProps): React.JSX.Element {
             <Typography color="text.secondary" variant="body2">
               by{' '}
               <Typography color="text.primary" variant="subtitle2">
-                {project.author.name}
+                {project.userId}
               </Typography>{' '}
               | {dayjs(project.createdAt).fromNow()}
             </Typography>
@@ -142,8 +134,8 @@ function ProjectCard({ project }: ProjectCardProps): React.JSX.Element {
         <Stack direction="row" spacing={3} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <Typography variant="subtitle2">
-              {new Intl.NumberFormat('en-US', { style: 'currency', currency: project.currency }).format(
-                project.budget
+              {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
+                parseFloat(project.price)
               )}
             </Typography>
             <Typography color="text.secondary" variant="body2">
@@ -151,13 +143,13 @@ function ProjectCard({ project }: ProjectCardProps): React.JSX.Element {
             </Typography>
           </div>
           <div>
-            <Typography variant="subtitle2">{project.location}</Typography>
+            <Typography variant="subtitle2">{project.city}</Typography>
             <Typography color="text.secondary" variant="body2">
               Location
             </Typography>
           </div>
           <div>
-            <Typography variant="subtitle2">{project.type}</Typography>
+            <Typography variant="subtitle2">{project.propertyType}</Typography>
             <Typography color="text.secondary" variant="body2">
               Type
             </Typography>
@@ -166,7 +158,7 @@ function ProjectCard({ project }: ProjectCardProps): React.JSX.Element {
       </Stack>
       <Divider />
       <Stack direction="row" spacing={2} sx={{ alignItems: 'center', p: 2 }}>
-        <Rating readOnly size="small" value={project.rating} />
+        <Rating readOnly size="small" value={project.bedrooms} />
       </Stack>
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 2 }}>
         <Link href={`/${project.id}`} passHref>

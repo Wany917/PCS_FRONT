@@ -1,4 +1,5 @@
 'use client';
+
 import * as React from 'react';
 import RouterLink from 'next/link';
 import Box from '@mui/material/Box';
@@ -8,40 +9,39 @@ import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
+
 import { paths } from '@/paths';
 import { PropertyModal } from '@/components/dashboard/properties/property-modal';
 import type { Filters } from '@/components/dashboard/properties/properties-filters';
 import { PropertiesFilters } from '@/components/dashboard/properties/properties-filters';
 import { PropertiesPagination } from '@/components/dashboard/properties/properties-pagination';
 import { PropertiesTable } from '@/components/dashboard/properties/properties-table';
+import { useGetProperties, PropertyFilters } from '@/api/properties';
 import { useTranslation } from 'react-i18next';
-import type { Property } from '@/api/properties';
-import { useGetProperties, deleteProperty } from '@/api/properties';
 
 interface PageProps {
-  searchParams: { category?: string; previewId?: string; sortDir?: 'asc' | 'desc'; sku?: string; status?: string };
+  searchParams: PropertyFilters;
 }
 
 export default function Page({ searchParams }: PageProps): React.JSX.Element {
   const { t } = useTranslation();
   const { category, previewId, sortDir, sku, status } = searchParams;
-  const { properties, propertiesLoading } = useGetProperties({ category, status, sortDir });
-  const [currentPage, setCurrentPage] = React.useState(0);
 
-  const handleDeleteProperty = async (id: number) => {
-    try {
-      await deleteProperty(id);
-      console.log('Property deleted successfully');
-    } catch (error) {
-      console.error('Error deleting property', error);
-    }
-  };
+  const { properties, propertiesLoading, propertiesError } = useGetProperties(searchParams);
+
+  if (propertiesLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (propertiesError) {
+    return <div>Error loading properties.</div>;
+  }
 
   const orderedProperties = applySort(properties, sortDir);
   const filteredProperties = applyFilters(orderedProperties, { category, sku, status });
 
   return (
-    <>
+    <React.Fragment>
       <Box
         sx={{
           maxWidth: 'var(--Content-maxWidth)',
@@ -70,24 +70,20 @@ export default function Page({ searchParams }: PageProps): React.JSX.Element {
             <PropertiesFilters filters={{ category, sku, status }} sortDir={sortDir} />
             <Divider />
             <Box sx={{ overflowX: 'auto' }}>
-              {propertiesLoading ? (
-                <Typography>{t('loadingProperties')}</Typography>
-              ) : (
-                <PropertiesTable onDelete={handleDeleteProperty} rows={filteredProperties} />
-              )}
+              <PropertiesTable rows={filteredProperties} />
             </Box>
             <Divider />
-            <PropertiesPagination count={filteredProperties.length} onPageChange={setCurrentPage} page={currentPage} />
+            <PropertiesPagination count={filteredProperties.length} page={0} />
           </Card>
         </Stack>
       </Box>
       <PropertyModal open={Boolean(previewId)} />
-    </>
+    </React.Fragment>
   );
 }
 
-function applySort(rows: Property[], sortDir: 'asc' | 'desc' | undefined): Property[] {
-  return rows.sort((a, b) => {
+function applySort(row: any[], sortDir: 'asc' | 'desc' | undefined): any[] {
+  return row.sort((a, b) => {
     if (sortDir === 'asc') {
       return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     }
@@ -95,11 +91,17 @@ function applySort(rows: Property[], sortDir: 'asc' | 'desc' | undefined): Prope
   });
 }
 
-function applyFilters(rows: Property[], { category, status, sku }: Filters): Property[] {
-  return rows.filter((item) => {
-    if (category && item.category !== category) return false;
-    if (status && item.status !== status) return false;
-    if (sku && !item.sku.toLowerCase().includes(sku.toLowerCase())) return false;
+function applyFilters(row: any[], { category, status, sku }: Filters): any[] {
+  return row.filter((item) => {
+    if (category && item.category !== category) {
+      return false;
+    }
+    if (status && item.status !== status) {
+      return false;
+    }
+    if (sku && !item.sku?.toLowerCase().includes(sku.toLowerCase())) {
+      return false;
+    }
     return true;
   });
 }
