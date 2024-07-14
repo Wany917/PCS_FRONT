@@ -25,12 +25,12 @@ export interface Property {
   image: string | null;
   category: string;
   type: string;
-  quantity: number;
+  beds: number;
   currency?: string;
   price: string;
-  sku: string;
   status: 'published' | 'draft';
   createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface PropertiesTableProps {
@@ -95,13 +95,22 @@ export function PropertiesTable({ rows = [], onDelete }: PropertiesTableProps): 
       name: t('name'),
       width: '300px',
     },
-    { field: 'sku', name: 'SKU', width: '150px' },
-    { field: 'quantity', name: t('stock'), width: '100px' },
+    { field: 'beds', name: t('beds'), width: '100px' },
     {
       formatter(row) {
         return new Intl.NumberFormat('en-US', { style: 'currency', currency: row.currency || 'USD' }).format(parseFloat(row.price));
       },
       name: t('price'),
+      width: '150px',
+    },
+    {
+      formatter: (row) => new Date(row.createdAt).toLocaleDateString(),
+      name: t('createdAt'),
+      width: '150px',
+    },
+    {
+      formatter: (row) => new Date(row.updatedAt).toLocaleDateString(),
+      name: t('updatedAt'),
       width: '150px',
     },
     {
@@ -117,7 +126,7 @@ export function PropertiesTable({ rows = [], onDelete }: PropertiesTableProps): 
 
         return <Chip icon={icon} label={label} size="small" variant="outlined" />;
       },
-      name: t('status.status'),
+      name: t('status'),
       width: '150px',
     },
     {

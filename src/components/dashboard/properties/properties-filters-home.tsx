@@ -17,10 +17,7 @@ import { Option } from '@/components/core/option';
 
 export interface Filters {
   propertyType?: string;
-  country?: string;
-  city?: string;
   priceRange?: [number, number];
-  bedrooms?: number;
 }
 
 export type SortDir = 'asc' | 'desc';
@@ -32,7 +29,7 @@ export interface PropertiesFiltersProps {
 
 export function PropertiesFilters({ filters = {}, sortDir = 'desc' }: PropertiesFiltersProps): React.JSX.Element {
   const { t } = useTranslation();
-  const { propertyType, country, city, priceRange, bedrooms } = filters;
+  const { propertyType, priceRange } = filters;
   const router = useRouter();
 
   const updateSearchParams = React.useCallback(
@@ -47,24 +44,12 @@ export function PropertiesFilters({ filters = {}, sortDir = 'desc' }: Properties
         searchParams.set('propertyType', newFilters.propertyType);
       }
 
-      if (newFilters.country) {
-        searchParams.set('country', newFilters.country);
-      }
-
-      if (newFilters.city) {
-        searchParams.set('city', newFilters.city);
-      }
-
       if (newFilters.priceRange) {
         searchParams.set('priceMin', newFilters.priceRange[0].toString());
         searchParams.set('priceMax', newFilters.priceRange[1].toString());
       }
 
-      if (newFilters.bedrooms) {
-        searchParams.set('bedrooms', newFilters.bedrooms.toString());
-      }
-
-      router.push(`${paths.dashboard.properties.list}?${searchParams.toString()}`);
+      router.push(`${paths.home}?${searchParams.toString()}`);
     },
     [router]
   );
@@ -91,7 +76,7 @@ export function PropertiesFilters({ filters = {}, sortDir = 'desc' }: Properties
     [updateSearchParams, filters]
   );
 
-  const hasFilters = propertyType || country || city || priceRange || bedrooms;
+  const hasFilters = propertyType || priceRange;
 
   return (
     <div>
@@ -107,36 +92,12 @@ export function PropertiesFilters({ filters = {}, sortDir = 'desc' }: Properties
             value={propertyType || undefined}
           />
           <FilterButton
-            displayValue={country || undefined}
-            label={t('country')}
-            onFilterApply={(value) => handleFilterChange('country', value as string)}
-            onFilterDelete={() => handleFilterChange('country')}
-            popover={<CountryFilterPopover />}
-            value={country || undefined}
-          />
-          <FilterButton
-            displayValue={city || undefined}
-            label={t('city')}
-            onFilterApply={(value) => handleFilterChange('city', value as string)}
-            onFilterDelete={() => handleFilterChange('city')}
-            popover={<CityFilterPopover />}
-            value={city || undefined}
-          />
-          <FilterButton
             displayValue={priceRange ? `${priceRange[0]} - ${priceRange[1]}` : undefined}
             label={t('priceRange')}
             onFilterApply={(value) => handleFilterChange('priceRange', value as [number, number])}
             onFilterDelete={() => handleFilterChange('priceRange')}
             popover={<PriceRangeFilterPopover />}
             value={priceRange ? `${priceRange[0]} - ${priceRange[1]}` : undefined}
-          />
-          <FilterButton
-            displayValue={bedrooms ? bedrooms.toString() : undefined}
-            label={t('bedrooms')}
-            onFilterApply={(value) => handleFilterChange('bedrooms', Number(value))}
-            onFilterDelete={() => handleFilterChange('bedrooms')}
-            popover={<BedroomsFilterPopover />}
-            value={bedrooms ? bedrooms.toString() : undefined}
           />
           {hasFilters ? <Button onClick={handleClearFilters}>{t('clearFilters')}</Button> : null}
         </Stack>
@@ -170,70 +131,6 @@ function PropertyTypeFilterPopover(): React.JSX.Element {
           <Option value="apartment">{t('apartment')}</Option>
           {/* Ajoutez d'autres types de propriétés ici */}
         </Select>
-      </FormControl>
-      <Button
-        onClick={() => onApply(value)}
-        variant="contained"
-      >
-        {t('apply')}
-      </Button>
-    </FilterPopover>
-  );
-}
-
-function CountryFilterPopover(): React.JSX.Element {
-  const { t } = useTranslation();
-  const { anchorEl, onApply, onClose, open, value: initialValue } = useFilterContext();
-  const [value, setValue] = React.useState<string>('');
-
-  React.useEffect(() => {
-    setValue((initialValue as string | undefined) ?? '');
-  }, [initialValue]);
-
-  return (
-    <FilterPopover anchorEl={anchorEl} onClose={onClose} open={open} title={t('filterByCountry')}>
-      <FormControl>
-        <OutlinedInput
-          onChange={(event) => setValue(event.target.value)}
-          onKeyUp={(event) => {
-            if (event.key === 'Enter') {
-              onApply(value);
-            }
-          }}
-          value={value}
-        />
-      </FormControl>
-      <Button
-        onClick={() => onApply(value)}
-        variant="contained"
-      >
-        {t('apply')}
-      </Button>
-    </FilterPopover>
-  );
-}
-
-function CityFilterPopover(): React.JSX.Element {
-  const { t } = useTranslation();
-  const { anchorEl, onApply, onClose, open, value: initialValue } = useFilterContext();
-  const [value, setValue] = React.useState<string>('');
-
-  React.useEffect(() => {
-    setValue((initialValue as string | undefined) ?? '');
-  }, [initialValue]);
-
-  return (
-    <FilterPopover anchorEl={anchorEl} onClose={onClose} open={open} title={t('filterByCity')}>
-      <FormControl>
-        <OutlinedInput
-          onChange={(event) => setValue(event.target.value)}
-          onKeyUp={(event) => {
-            if (event.key === 'Enter') {
-              onApply(value);
-            }
-          }}
-          value={value}
-        />
       </FormControl>
       <Button
         onClick={() => onApply(value)}
@@ -279,34 +176,6 @@ function PriceRangeFilterPopover(): React.JSX.Element {
       </FormControl>
       <Button
         onClick={() => onApply([Number(minValue), Number(maxValue)])}
-        variant="contained"
-      >
-        {t('apply')}
-      </Button>
-    </FilterPopover>
-  );
-}
-
-function BedroomsFilterPopover(): React.JSX.Element {
-  const { t } = useTranslation();
-  const { anchorEl, onApply, onClose, open, value: initialValue } = useFilterContext();
-  const [value, setValue] = React.useState<number | string>('');
-
-  React.useEffect(() => {
-    setValue((initialValue as number | undefined) ?? '');
-  }, [initialValue]);
-
-  return (
-    <FilterPopover anchorEl={anchorEl} onClose={onClose} open={open} title={t('filterByBedrooms')}>
-      <FormControl>
-        <OutlinedInput
-          type="number"
-          onChange={(event) => setValue(event.target.value)}
-          value={value}
-        />
-      </FormControl>
-      <Button
-        onClick={() => onApply(Number(value))}
         variant="contained"
       >
         {t('apply')}

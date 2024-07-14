@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import * as React from 'react';
 import { useState } from 'react';
@@ -79,53 +79,53 @@ export function Included(): React.JSX.Element {
   }
 
   return (
-    <Box sx={{ overflow: 'hidden', py: '120px', position: 'relative' }}>
-      <Container maxWidth="lg">
-        <Stack spacing={4}>
-          <Box sx={{ position: 'absolute', top: '20px', left: '20px' }}>
-            <Button variant="contained" onClick={handleBackClick}>
-              Page Précédente
-            </Button>
-          </Box>
-          <Typography variant="h4">{property.title}</Typography>
-          <Grid container spacing={2}>
-            <Grid xs={12} md={6}>
-              {property.propertyImages && property.propertyImages.length > 0 && (
-                <Box sx={{ position: 'relative' }}>
-                  <IconButton sx={{ position: 'absolute', top: '50%', left: 0, transform: 'translateY(-50%)', zIndex: 10 }} onClick={handlePrevImage}>
-                    <NavigateBeforeIcon />
-                  </IconButton>
-                  <IconButton sx={{ position: 'absolute', top: '50%', right: 0, transform: 'translateY(-50%)', zIndex: 10 }} onClick={handleNextImage}>
-                    <NavigateNextIcon />
-                  </IconButton>
-                  <Box component="img" 
-                       src={property.propertyImages[currentImageIndex]?.link || '/assets/apartment-city-center.jpg'} 
-                       onError={(e) => { e.currentTarget.src = '/assets/apartment-city-center.jpg'; }} 
-                       sx={{ width: '100%', height: 'auto', borderRadius: '8px' }} 
-                  />
-                </Box>
-              )}
-            </Grid>
-            <Grid xs={12} md={6}>
-              <Stack spacing={2}>
-                <Typography variant="body1">{property.description}</Typography>
-                <Typography variant="h6">{property.price} € par voyageur</Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <StarIcon sx={{ color: '#ffb400' }} />
-                  <Typography variant="body1" sx={{ marginLeft: '8px' }}>
-                    {property.rating} ({property.reviews} commentaires)
-                  </Typography>
-                </Box>
-                <Stack direction="row" spacing={1}>
-                  {property.features?.map((feature, index) => (
-                    <Chip key={index} label={feature} variant="outlined" />
-                  ))}
-                </Stack>
-                <Box>
-                  <Typography variant="body2">{property.host?.name}</Typography>
-                  <Typography variant="body2">{property.host?.since}</Typography>
-                </Box>
-                <LocalizationProvider dateAdapter={AdapterDayjs}>
+    <LocalizationProvider dateAdapter={AdapterDayjs}>
+      <Box sx={{ overflow: 'hidden', py: '120px', position: 'relative' }}>
+        <Container maxWidth="lg">
+          <Stack spacing={4}>
+            <Box sx={{ position: 'absolute', top: '20px', left: '20px' }}>
+              <Button variant="contained" onClick={handleBackClick}>
+                Page Précédente
+              </Button>
+            </Box>
+            <Typography variant="h4">{property.title}</Typography>
+            <Grid container spacing={2}>
+              <Grid xs={12} md={6}>
+                {property.propertyImages && property.propertyImages.length > 0 && (
+                  <Box sx={{ position: 'relative' }}>
+                    <IconButton sx={{ position: 'absolute', top: '50%', left: 0, transform: 'translateY(-50%)', zIndex: 10 }} onClick={handlePrevImage}>
+                      <NavigateBeforeIcon />
+                    </IconButton>
+                    <IconButton sx={{ position: 'absolute', top: '50%', right: 0, transform: 'translateY(-50%)', zIndex: 10 }} onClick={handleNextImage}>
+                      <NavigateNextIcon />
+                    </IconButton>
+                    <Box component="img" 
+                        src={property.propertyImages[currentImageIndex]?.link || '/assets/apartment-city-center.jpg'} 
+                        onError={(e) => { e.currentTarget.src = '/assets/apartment-city-center.jpg'; }} 
+                        sx={{ width: '100%', height: 'auto', borderRadius: '8px' }} 
+                    />
+                  </Box>
+                )}
+              </Grid>
+              <Grid xs={12} md={6}>
+                <Stack spacing={2}>
+                  <Typography variant="body1">{property.description}</Typography>
+                  <Typography variant="h6">{property.price} € par voyageur</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <StarIcon sx={{ color: '#ffb400' }} />
+                    <Typography variant="body1" sx={{ marginLeft: '8px' }}>
+                      {property.rating} ({property.reviews} commentaires)
+                    </Typography>
+                  </Box>
+                  <Stack direction="row" spacing={1}>
+                    {property.features?.map((feature, index) => (
+                      <Chip key={index} label={feature} variant="outlined" />
+                    ))}
+                  </Stack>
+                  <Box>
+                    <Typography variant="body2">{property.host?.name}</Typography>
+                    <Typography variant="body2">{property.host?.since}</Typography>
+                  </Box>
                   <DateRangePicker
                     startText="Arrivée"
                     endText="Départ"
@@ -139,51 +139,51 @@ export function Included(): React.JSX.Element {
                       </React.Fragment>
                     )}
                   />
-                </LocalizationProvider>
-                <TextField
-                  label="Nombre de voyageurs"
-                  type="number"
-                  value={travelers}
-                  onChange={(e) => setTravelers(Number(e.target.value))}
-                  fullWidth
-                  sx={{ mb: 2 }}
+                  <TextField
+                    label="Nombre de voyageurs"
+                    type="number"
+                    value={travelers}
+                    onChange={(e) => setTravelers(Number(e.target.value))}
+                    fullWidth
+                    sx={{ mb: 2 }}
+                  />
+                  <Typography variant="h6">
+                    Total: {calculateTotalAmount()} €
+                  </Typography>
+                  <Button variant="contained" color="secondary" onClick={handleReserveClick}>
+                    Réserver
+                  </Button>
+                </Stack>
+              </Grid>
+            </Grid>
+            <Stack spacing={2}>
+              <Typography variant="h5">Description</Typography>
+              <Typography variant="body1">{property.longDescription}</Typography>
+            </Stack>
+            <Stack spacing={2}>
+              <Typography variant="h5">Équipements inclus</Typography>
+              <Grid container spacing={2}>
+                {property.amenities?.map((amenity, index) => (
+                  <Grid item xs={12} sm={6} key={index}>
+                    <Typography variant="body1">{amenity}</Typography>
+                  </Grid>
+                ))}
+              </Grid>
+            </Stack>
+            <Typography variant="h5">Où se situe le logement</Typography>
+            <Typography variant="body1">{property.location?.address}</Typography>
+            <Box sx={{ height: '400px', mt: 4 }}>
+              <LoadScript googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}>
+                <GoogleMap
+                  mapContainerStyle={{ width: '100%', height: '100%' }}
+                  center={{ lat: property.location?.lat, lng: property.location?.lng }}
+                  zoom={15}
                 />
-                <Typography variant="h6">
-                  Total: {calculateTotalAmount()} €
-                </Typography>
-                <Button variant="contained" color="secondary" onClick={handleReserveClick}>
-                  Réserver
-                </Button>
-              </Stack>
-            </Grid>
-          </Grid>
-          <Stack spacing={2}>
-            <Typography variant="h5">Description</Typography>
-            <Typography variant="body1">{property.longDescription}</Typography>
+              </LoadScript>
+            </Box>
           </Stack>
-          <Stack spacing={2}>
-            <Typography variant="h5">Équipements inclus</Typography>
-            <Grid container spacing={2}>
-              {property.amenities?.map((amenity, index) => (
-                <Grid item xs={12} sm={6} key={index}>
-                  <Typography variant="body1">{amenity}</Typography>
-                </Grid>
-              ))}
-            </Grid>
-          </Stack>
-          <Typography variant="h5">Où se situe le logement</Typography>
-          <Typography variant="body1">{property.location?.address}</Typography>
-          <Box sx={{ height: '400px', mt: 4 }}>
-            <LoadScript googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}>
-              <GoogleMap
-                mapContainerStyle={{ width: '100%', height: '100%' }}
-                center={{ lat: property.location?.lat, lng: property.location?.lng }}
-                zoom={15}
-              />
-            </LoadScript>
-          </Box>
-        </Stack>
-      </Container>
-    </Box>
+        </Container>
+      </Box>
+    </LocalizationProvider>
   );
 }

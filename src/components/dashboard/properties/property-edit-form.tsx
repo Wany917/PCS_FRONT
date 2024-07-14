@@ -47,25 +47,23 @@ export interface Image {
   fileName: string;
 }
 
-export interface Product {
-  id: string;
-  name: string;
-  handle?: string;
-  category?: string;
-  type: string;
+export interface Property {
+  id: number;
+  title: string;
+  propertyType: string;
   description: string;
-  tags?: string;
-  currency: string;
+  country: string;
+  state: string;
+  city: string;
+  zipCode: string;
+  line1: string;
   price: number;
-  images?: Image[];
-  sku?: string;
-  barcode?: string;
-  quantity: number;
-  backorder?: boolean;
-  height?: number;
-  width?: number;
-  length?: number;
-  weight?: number;
+  images: Image[];
+  bedrooms: number;
+  bathrooms: number;
+  beds: number;
+  userId: number;
+  isPrivate: boolean;
 }
 
 function fileToBase64(file: Blob): Promise<string> {
@@ -123,54 +121,50 @@ function getImageColumns({ onRemove }: { onRemove?: (imageId: string) => void })
 }
 
 const schema = zod.object({
-  name: zod.string().min(1, 'Name is required').max(255),
-  handle: zod.string().max(255).optional(),
-  category: zod.string().max(255).optional(),
-  type: zod.string().max(255).optional(),
+  title: zod.string().min(1, 'Title is required').max(255),
+  propertyType: zod.string().min(1, 'Property type is required').max(255),
   description: zod.string().max(5000).optional(),
-  tags: zod.string().max(255).optional(),
-  currency: zod.string().min(1, 'Currency is required').max(255),
+  country: zod.string().min(1, 'Country is required').max(255),
+  state: zod.string().optional(),
+  city: zod.string().min(1, 'City is required').max(255),
+  zipCode: zod.string().min(1, 'Zip code is required').max(255),
+  line1: zod.string().min(1, 'Address is required').max(255),
   price: zod.number().min(0, 'Price must be greater than or equal to 0'),
   images: zod.array(zod.object({ id: zod.string(), url: zod.string(), fileName: zod.string() })),
-  sku: zod.string().max(255).optional(),
-  barcode: zod.string().max(255).optional(),
-  quantity: zod.number().min(0, 'Quantity must be greater than or equal to 0'),
-  backorder: zod.boolean().optional(),
-  height: zod.number().min(0, 'Height must be greater than or equal to 0').optional(),
-  width: zod.number().min(0, 'Width must be greater than or equal to 0').optional(),
-  length: zod.number().min(0, 'Length must be greater than or equal to 0').optional(),
-  weight: zod.number().min(0, 'Weight must be greater than or equal to 0').optional(),
+  bedrooms: zod.number().min(1, 'Bedrooms must be greater than or equal to 1').max(8),
+  bathrooms: zod.number().min(1, 'Bathrooms must be greater than or equal to 1').max(8),
+  beds: zod.number().min(1, 'Beds must be greater than or equal to 1').max(8),
+  userId: zod.number().positive().int().min(1, 'Owner is required'),
+  isPrivate: zod.boolean().optional(),
 });
 
 type Values = zod.infer<typeof schema>;
 
-function getDefaultValues(product: Product): Values {
+function getDefaultValues(property: Property): Values {
   return {
-    name: product.name ?? '',
-    handle: product.handle ?? '',
-    category: product.category ?? '',
-    type: product.type ?? 'physical',
-    description: product.description ?? '',
-    tags: product.tags ?? '',
-    currency: product.currency ?? 'USD',
-    price: product.price ?? 0,
-    images: product.images ?? [],
-    sku: product.sku ?? '',
-    barcode: product.barcode ?? '',
-    quantity: product.quantity ?? 0,
-    backorder: product.backorder ?? false,
-    height: product.height ?? 0,
-    width: product.width ?? 0,
-    length: product.length ?? 0,
-    weight: product.weight ?? 0,
+    title: property.title,
+    propertyType: property.propertyType,
+    description: property.description,
+    country: property.country,
+    state: property.state,
+    city: property.city,
+    zipCode: property.zipCode,
+    line1: property.line1,
+    price: property.price,
+    images: property.images,
+    bedrooms: property.bedrooms,
+    bathrooms: property.bathrooms,
+    beds: property.beds,
+    userId: property.userId,
+    isPrivate: property.isPrivate,
   };
 }
 
-export interface ProductEditFormProps {
-  product: Product;
+export interface PropertyEditFormProps {
+  property: Property;
 }
 
-export function PropertyEditForm({ product }: ProductEditFormProps): React.JSX.Element {
+export function PropertyEditForm({ property }: PropertyEditFormProps): React.JSX.Element {
   const { t } = useTranslation();
   const router = useRouter();
 
@@ -181,13 +175,13 @@ export function PropertyEditForm({ product }: ProductEditFormProps): React.JSX.E
     getValues,
     setValue,
     watch,
-  } = useForm<Values>({ defaultValues: getDefaultValues(product), resolver: zodResolver(schema) });
+  } = useForm<Values>({ defaultValues: getDefaultValues(property), resolver: zodResolver(schema) });
 
   const onSubmit = React.useCallback(
-    async (_: Values): Promise<void> => {
+    async (values: Values): Promise<void> => {
       try {
         // Make API request
-        toast.success(t('productUpdated'));
+        toast.success(t('propertyUpdated'));
         router.push(paths.dashboard.properties.list);
       } catch (err) {
         logger.error(err);
@@ -199,12 +193,9 @@ export function PropertyEditForm({ product }: ProductEditFormProps): React.JSX.E
 
   const handleImageDrop = React.useCallback(
     async (files: File[]) => {
-      // Upload images to the server
-
       const images = await Promise.all(
         files.map(async (file) => {
           const url = await fileToBase64(file);
-
           return { id: `IMG-${Date.now()}`, url, fileName: file.name };
         })
       );
@@ -224,13 +215,19 @@ export function PropertyEditForm({ product }: ProductEditFormProps): React.JSX.E
     [getValues, setValue]
   );
 
-  const name = watch('name');
-  const handle = watch('handle');
-  const category = watch('category');
-  const tags = watch('tags');
-  const images = watch('images');
-  const currency = watch('currency');
+  const title = watch('title');
+  const description = watch('description');
+  const propertyType = watch('propertyType');
+  const country = watch('country');
+  const state = watch('state');
+  const city = watch('city');
+  const zipCode = watch('zipCode');
+  const line1 = watch('line1');
   const price = watch('price');
+  const bedrooms = watch('bedrooms');
+  const bathrooms = watch('bathrooms');
+  const beds = watch('beds');
+  const images = watch('images');
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
@@ -238,159 +235,179 @@ export function PropertyEditForm({ product }: ProductEditFormProps): React.JSX.E
         <Grid md={8} xs={12}>
           <Card>
             <CardContent>
-              <Stack divider={<Divider />} spacing={4}>
-                <Stack spacing={3}>
-                  <Typography variant="h6">{t('basicInformation')}</Typography>
-                  <Grid container spacing={3}>
-                    <Grid md={6} xs={12}>
-                      <Controller
-                        control={control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormControl error={Boolean(errors.name)} fullWidth>
-                            <InputLabel required>{t('productName')}</InputLabel>
-                            <OutlinedInput {...field} />
-                            {errors.name ? <FormHelperText>{errors.name.message}</FormHelperText> : null}
-                          </FormControl>
-                        )}
-                      />
-                    </Grid>
-                    <Grid md={6} xs={12}>
-                      <Controller
-                        control={control}
-                        name="handle"
-                        render={({ field }) => (
-                          <FormControl error={Boolean(errors.handle)} fullWidth>
-                            <InputLabel>{t('handle')}</InputLabel>
-                            <OutlinedInput {...field} />
-                            {errors.handle ? <FormHelperText>{errors.handle.message}</FormHelperText> : null}
-                          </FormControl>
-                        )}
-                      />
-                    </Grid>
-                    <Grid md={6} xs={12}>
-                      <Controller
-                        control={control}
-                        name="category"
-                        render={({ field }) => (
-                          <FormControl error={Boolean(errors.category)} fullWidth>
-                            <InputLabel>{t('category')}</InputLabel>
-                            <Select {...field}>
-                              <Option value="">{t('selectCategory')}</Option>
-                              <Option value="Healthcare">{t('healthcare')}</Option>
-                              <Option value="Makeup">{t('makeup')}</Option>
-                              <Option value="Skincare">{t('skincare')}</Option>
-                            </Select>
-                            {errors.category ? <FormHelperText error>{errors.category.message}</FormHelperText> : null}
-                          </FormControl>
-                        )}
-                      />
-                    </Grid>
-                    <Grid md={6} xs={12}>
-                      <Controller
-                        control={control}
-                        name="type"
-                        render={({ field }) => (
-                          <FormControl error={Boolean(errors.type)} fullWidth>
-                            <InputLabel>{t('type')}</InputLabel>
-                            <Select {...field}>
-                              <Option value="physical">{t('physical')}</Option>
-                              <Option value="digital">{t('digital')}</Option>
-                              <Option value="service">{t('service')}</Option>
-                            </Select>
-                            {errors.type ? <FormHelperText error>{errors.type.message}</FormHelperText> : null}
-                          </FormControl>
-                        )}
-                      />
-                    </Grid>
-                    <Grid xs={12}>
-                      <Controller
-                        control={control}
-                        name="description"
-                        render={({ field }) => (
-                          <FormControl error={Boolean(errors.description)} fullWidth>
-                            <InputLabel>{t('description')}</InputLabel>
-                            <Box sx={{ mt: '8px', '& .tiptap-container': { height: '400px' } }}>
-                              <TextEditor
-                                content={field.value ?? ''}
-                                onUpdate={({ editor }: EditorEvents['update']) => {
-                                  field.onChange(editor.getText());
-                                }}
-                                placeholder={t('writeSomething')}
-                              />
-                            </Box>
-                            {errors.description ? (
-                              <FormHelperText error>{errors.description.message}</FormHelperText>
-                            ) : null}
-                          </FormControl>
-                        )}
-                      />
-                    </Grid>
-                    <Grid xs={12}>
-                      <Controller
-                        control={control}
-                        name="tags"
-                        render={({ field }) => (
-                          <FormControl error={Boolean(errors.name)} fullWidth>
-                            <InputLabel>{t('tags')}</InputLabel>
-                            <OutlinedInput {...field} placeholder={t('tagsPlaceholder')} />
-                            {errors.name ? (
-                              <FormHelperText>{errors.name.message}</FormHelperText>
-                            ) : (
-                              <FormHelperText>{t('tagsHelper')}</FormHelperText>
-                            )}
-                          </FormControl>
-                        )}
-                      />
-                    </Grid>
-                  </Grid>
-                </Stack>
-                <Stack spacing={3}>
-                  <Typography variant="h6">{t('pricing')}</Typography>
-                  <Stack direction="row" spacing={3}>
+              <Stack spacing={3}>
+                <Typography variant="h6">{t('basicInformation')}</Typography>
+                <Grid container spacing={3}>
+                  <Grid md={6} xs={12}>
                     <Controller
                       control={control}
-                      name="currency"
+                      name="title"
                       render={({ field }) => (
-                        <FormControl error={Boolean(errors.currency)} sx={{ width: '150px' }}>
-                          <InputLabel>{t('currency')}</InputLabel>
-                          <Select {...field}>
-                            <Option value="">{t('selectCurrency')}</Option>
-                            <Option value="USD">USD</Option>
-                            <Option value="EUR">EUR</Option>
-                            <Option value="RON">RON</Option>
-                          </Select>
-                          {errors.currency ? <FormHelperText>{errors.currency.message}</FormHelperText> : null}
+                        <FormControl error={Boolean(errors.title)} fullWidth>
+                          <InputLabel required>{t('title')}</InputLabel>
+                          <OutlinedInput {...field} />
+                          {errors.title ? <FormHelperText>{errors.title.message}</FormHelperText> : null}
                         </FormControl>
                       )}
                     />
+                  </Grid>
+                  <Grid md={6} xs={12}>
+                    <Controller
+                      control={control}
+                      name="propertyType"
+                      render={({ field }) => (
+                        <FormControl error={Boolean(errors.propertyType)} fullWidth>
+                          <InputLabel required>{t('propertyType')}</InputLabel>
+                          <Select {...field}>
+                            <Option value="house">{t('house')}</Option>
+                            <Option value="apartment">{t('apartment')}</Option>
+                            <Option value="guestHouse">{t('guestHouse')}</Option>
+                            <Option value="hotel">{t('hotel')}</Option>
+                          </Select>
+                          {errors.propertyType ? <FormHelperText>{errors.propertyType.message}</FormHelperText> : null}
+                        </FormControl>
+                      )}
+                    />
+                  </Grid>
+                  <Grid md={6} xs={12}>
+                    <Controller
+                      control={control}
+                      name="country"
+                      render={({ field }) => (
+                        <FormControl error={Boolean(errors.country)} fullWidth>
+                          <InputLabel required>{t('country')}</InputLabel>
+                          <OutlinedInput {...field} />
+                          {errors.country ? <FormHelperText>{errors.country.message}</FormHelperText> : null}
+                        </FormControl>
+                      )}
+                    />
+                  </Grid>
+                  <Grid md={6} xs={12}>
+                    <Controller
+                      control={control}
+                      name="state"
+                      render={({ field }) => (
+                        <FormControl error={Boolean(errors.state)} fullWidth>
+                          <InputLabel>{t('state')}</InputLabel>
+                          <OutlinedInput {...field} />
+                          {errors.state ? <FormHelperText>{errors.state.message}</FormHelperText> : null}
+                        </FormControl>
+                      )}
+                    />
+                  </Grid>
+                  <Grid md={6} xs={12}>
+                    <Controller
+                      control={control}
+                      name="city"
+                      render={({ field }) => (
+                        <FormControl error={Boolean(errors.city)} fullWidth>
+                          <InputLabel required>{t('city')}</InputLabel>
+                          <OutlinedInput {...field} />
+                          {errors.city ? <FormHelperText>{errors.city.message}</FormHelperText> : null}
+                        </FormControl>
+                      )}
+                    />
+                  </Grid>
+                  <Grid md={6} xs={12}>
+                    <Controller
+                      control={control}
+                      name="zipCode"
+                      render={({ field }) => (
+                        <FormControl error={Boolean(errors.zipCode)} fullWidth>
+                          <InputLabel required>{t('zipCode')}</InputLabel>
+                          <OutlinedInput {...field} />
+                          {errors.zipCode ? <FormHelperText>{errors.zipCode.message}</FormHelperText> : null}
+                        </FormControl>
+                      )}
+                    />
+                  </Grid>
+                  <Grid md={6} xs={12}>
+                    <Controller
+                      control={control}
+                      name="line1"
+                      render={({ field }) => (
+                        <FormControl error={Boolean(errors.line1)} fullWidth>
+                          <InputLabel required>{t('address')}</InputLabel>
+                          <OutlinedInput {...field} />
+                          {errors.line1 ? <FormHelperText>{errors.line1.message}</FormHelperText> : null}
+                        </FormControl>
+                      )}
+                    />
+                  </Grid>
+                  <Grid md={6} xs={12}>
                     <Controller
                       control={control}
                       name="price"
                       render={({ field }) => (
-                        <FormControl error={Boolean(errors.price)}>
-                          <InputLabel>{t('price')}</InputLabel>
-                          <OutlinedInput
-                            {...field}
-                            inputProps={{ step: 0.01 }}
-                            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                              const value = event.target.valueAsNumber;
-
-                              if (isNaN(value)) {
-                                field.onChange('');
-                                return;
-                              }
-
-                              field.onChange(parseFloat(value.toFixed(2)));
-                            }}
-                            sx={{ width: '140px' }}
-                            type="number"
-                          />
+                        <FormControl error={Boolean(errors.price)} fullWidth>
+                          <InputLabel required>{t('price')}</InputLabel>
+                          <OutlinedInput {...field} inputProps={{ min: 0 }} type="number" />
                           {errors.price ? <FormHelperText>{errors.price.message}</FormHelperText> : null}
                         </FormControl>
                       )}
                     />
-                  </Stack>
+                  </Grid>
+                  <Grid md={6} xs={12}>
+                    <Controller
+                      control={control}
+                      name="bedrooms"
+                      render={({ field }) => (
+                        <FormControl error={Boolean(errors.bedrooms)} fullWidth>
+                          <InputLabel required>{t('bedrooms')}</InputLabel>
+                          <OutlinedInput {...field} inputProps={{ min: 1, max: 8 }} type="number" />
+                          {errors.bedrooms ? <FormHelperText>{errors.bedrooms.message}</FormHelperText> : null}
+                        </FormControl>
+                      )}
+                    />
+                  </Grid>
+                  <Grid md={6} xs={12}>
+                    <Controller
+                      control={control}
+                      name="bathrooms"
+                      render={({ field }) => (
+                        <FormControl error={Boolean(errors.bathrooms)} fullWidth>
+                          <InputLabel required>{t('bathrooms')}</InputLabel>
+                          <OutlinedInput {...field} inputProps={{ min: 1, max: 8 }} type="number" />
+                          {errors.bathrooms ? <FormHelperText>{errors.bathrooms.message}</FormHelperText> : null}
+                        </FormControl>
+                      )}
+                    />
+                  </Grid>
+                  <Grid md={6} xs={12}>
+                    <Controller
+                      control={control}
+                      name="beds"
+                      render={({ field }) => (
+                        <FormControl error={Boolean(errors.beds)} fullWidth>
+                          <InputLabel required>{t('beds')}</InputLabel>
+                          <OutlinedInput {...field} inputProps={{ min: 1, max: 8 }} type="number" />
+                          {errors.beds ? <FormHelperText>{errors.beds.message}</FormHelperText> : null}
+                        </FormControl>
+                      )}
+                    />
+                  </Grid>
+                </Grid>
+                <Stack spacing={3}>
+                  <Typography variant="h6">{t('description')}</Typography>
+                  <Controller
+                    control={control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormControl error={Boolean(errors.description)} fullWidth>
+                        <InputLabel>{t('description')}</InputLabel>
+                        <Box sx={{ mt: '8px', '& .tiptap-container': { height: '400px' } }}>
+                          <TextEditor
+                            content={field.value ?? ''}
+                            onUpdate={({ editor }: EditorEvents['update']) => {
+                              field.onChange(editor.getText());
+                            }}
+                            placeholder={t('writeSomething')}
+                          />
+                        </Box>
+                        {errors.description ? <FormHelperText error>{errors.description.message}</FormHelperText> : null}
+                      </FormControl>
+                    )}
+                  />
                 </Stack>
                 <Stack spacing={3}>
                   <Typography variant="h6">{t('images')}</Typography>
@@ -404,220 +421,7 @@ export function PropertyEditForm({ product }: ProductEditFormProps): React.JSX.E
                       </Box>
                     ) : null}
                   </Card>
-                  <FileDropzone
-                    accept={{ 'image/*': [] }}
-                    caption={t('imageFormats')}
-                    onDrop={handleImageDrop}
-                  />
-                </Stack>
-                <Stack spacing={3}>
-                  <Typography variant="h6">{t('stockInventory')}</Typography>
-                  <Grid container spacing={3}>
-                    <Grid md={6} xs={12}>
-                      <Controller
-                        control={control}
-                        name="sku"
-                        render={({ field }) => (
-                          <FormControl error={Boolean(errors.sku)} fullWidth>
-                            <InputLabel>{t('sku')}</InputLabel>
-                            <OutlinedInput {...field} placeholder="e.g AG12345" />
-                            {errors.sku ? (
-                              <FormHelperText>{errors.sku.message}</FormHelperText>
-                            ) : (
-                              <FormHelperText>{t('skuHelper')}</FormHelperText>
-                            )}
-                          </FormControl>
-                        )}
-                      />
-                    </Grid>
-                    <Grid md={6} xs={12}>
-                      <Controller
-                        control={control}
-                        name="barcode"
-                        render={({ field }) => (
-                          <FormControl error={Boolean(errors.barcode)} fullWidth>
-                            <InputLabel>{t('barcode')}</InputLabel>
-                            <OutlinedInput {...field} placeholder="e.g 00123456789012" />
-                            {errors.barcode ? <FormHelperText>{errors.barcode.message}</FormHelperText> : null}
-                          </FormControl>
-                        )}
-                      />
-                    </Grid>
-                    <Grid md={6} xs={12}>
-                      <Controller
-                        control={control}
-                        name="quantity"
-                        render={({ field }) => (
-                          <FormControl error={Boolean(errors.quantity)} fullWidth>
-                            <InputLabel>{t('quantity')}</InputLabel>
-                            <OutlinedInput
-                              {...field}
-                              inputProps={{ step: 1 }}
-                              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                                const value = event.target.valueAsNumber;
-
-                                if (isNaN(value)) {
-                                  field.onChange('');
-                                  return;
-                                }
-
-                                field.onChange(parseInt(event.target.value));
-                              }}
-                              type="number"
-                            />
-                            {errors.quantity ? <FormHelperText>{errors.quantity.message}</FormHelperText> : null}
-                          </FormControl>
-                        )}
-                      />
-                    </Grid>
-                    <Grid xs={12}>
-                      <Controller
-                        control={control}
-                        name="backorder"
-                        render={({ field }) => (
-                          <FormControlLabel
-                            control={<Checkbox {...field} />}
-                            label={
-                              <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                                <Typography variant="body2">{t('allowBackorders')}</Typography>
-                                <Tooltip title={t('backordersTooltip')}>
-                                  <InfoIcon
-                                    color="var(--mui-palette-text-secondary)"
-                                    fontSize="var(--icon-fontSize-md)"
-                                    weight="fill"
-                                  />
-                                </Tooltip>
-                              </Stack>
-                            }
-                          />
-                        )}
-                      />
-                    </Grid>
-                    <Grid md={6} xs={12}>
-                      <Controller
-                        control={control}
-                        name="height"
-                        render={({ field }) => (
-                          <FormControl error={Boolean(errors.height)} fullWidth>
-                            <InputLabel>{t('height')}</InputLabel>
-                            <OutlinedInput
-                              {...field}
-                              endAdornment={
-                                <InputAdornment position="end">
-                                  <Typography variant="body2">{t('cm')}</Typography>
-                                </InputAdornment>
-                              }
-                              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                                const value = event.target.valueAsNumber;
-
-                                if (isNaN(value)) {
-                                  field.onChange('');
-                                  return;
-                                }
-
-                                field.onChange(value);
-                              }}
-                              type="number"
-                            />
-                            {errors.height ? <FormHelperText>{errors.height.message}</FormHelperText> : null}
-                          </FormControl>
-                        )}
-                      />
-                    </Grid>
-                    <Grid md={6} xs={12}>
-                      <Controller
-                        control={control}
-                        name="width"
-                        render={({ field }) => (
-                          <FormControl error={Boolean(errors.width)} fullWidth>
-                            <InputLabel>{t('width')}</InputLabel>
-                            <OutlinedInput
-                              {...field}
-                              endAdornment={
-                                <InputAdornment position="end">
-                                  <Typography variant="body2">{t('cm')}</Typography>
-                                </InputAdornment>
-                              }
-                              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                                const value = event.target.valueAsNumber;
-
-                                if (isNaN(value)) {
-                                  field.onChange('');
-                                  return;
-                                }
-
-                                field.onChange(value);
-                              }}
-                              type="number"
-                            />
-                            {errors.width ? <FormHelperText>{errors.width.message}</FormHelperText> : null}
-                          </FormControl>
-                        )}
-                      />
-                    </Grid>
-                    <Grid md={6} xs={12}>
-                      <Controller
-                        control={control}
-                        name="length"
-                        render={({ field }) => (
-                          <FormControl error={Boolean(errors.length)} fullWidth>
-                            <InputLabel>{t('length')}</InputLabel>
-                            <OutlinedInput
-                              {...field}
-                              endAdornment={
-                                <InputAdornment position="end">
-                                  <Typography variant="body2">{t('cm')}</Typography>
-                                </InputAdornment>
-                              }
-                              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                                const value = event.target.valueAsNumber;
-
-                                if (isNaN(value)) {
-                                  field.onChange('');
-                                  return;
-                                }
-
-                                field.onChange(value);
-                              }}
-                              type="number"
-                            />
-                            {errors.length ? <FormHelperText>{errors.length.message}</FormHelperText> : null}
-                          </FormControl>
-                        )}
-                      />
-                    </Grid>
-                    <Grid md={6} xs={12}>
-                      <Controller
-                        control={control}
-                        name="weight"
-                        render={({ field }) => (
-                          <FormControl error={Boolean(errors.weight)} fullWidth>
-                            <InputLabel>{t('weight')}</InputLabel>
-                            <OutlinedInput
-                              {...field}
-                              endAdornment={
-                                <InputAdornment position="end">
-                                  <Typography variant="body2">{t('kg')}</Typography>
-                                </InputAdornment>
-                              }
-                              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                                const value = event.target.valueAsNumber;
-
-                                if (isNaN(value)) {
-                                  field.onChange('');
-                                  return;
-                                }
-
-                                field.onChange(value);
-                              }}
-                              type="number"
-                            />
-                            {errors.weight ? <FormHelperText>{errors.weight.message}</FormHelperText> : null}
-                          </FormControl>
-                        )}
-                      />
-                    </Grid>
-                  </Grid>
+                  <FileDropzone accept={{ 'image/*': [] }} caption={t('imageFormats')} onDrop={handleImageDrop} />
                 </Stack>
               </Stack>
             </CardContent>
@@ -665,33 +469,37 @@ export function PropertyEditForm({ product }: ProductEditFormProps): React.JSX.E
                     </Box>
                   )}
                   <div>
-                    <Typography color={name ? 'text.primary' : 'text.disabled'} variant="subtitle1">
-                      {name || t('productName')}
+                    <Typography color={title ? 'text.primary' : 'text.disabled'} variant="subtitle1">
+                      {title || t('propertyTitle')}
                     </Typography>
-                    <Typography color={category ? 'text.secondary' : 'text.disabled'} variant="body2">
-                      {t('in')} {category || t('category')}
+                    <Typography color={propertyType ? 'text.secondary' : 'text.disabled'} variant="body2">
+                      {t('propertyType')}: {propertyType || t('notSpecified')}
                     </Typography>
                   </div>
                   <Typography color="text.primary" variant="body2">
-                    {new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(price)}
+                    {t('price')}: ${price || 0}
+                  </Typography>
+                  <Typography color="text.secondary" variant="body2">
+                    {t('address')}:
+                    <br />
+                    {line1 ? `${line1}, ` : ''}
+                    {zipCode ? `${zipCode} ` : ''}
+                    {city ? `${city}, ` : ''}
+                    {state ? `${state}, ` : ''}
+                    {country}
+                  </Typography>
+                  <Typography color="text.secondary" variant="body2">
+                    {t('bedrooms')}: {bedrooms}
+                  </Typography>
+                  <Typography color="text.secondary" variant="body2">
+                    {t('bathrooms')}: {bathrooms}
+                  </Typography>
+                  <Typography color="text.secondary" variant="body2">
+                    {t('beds')}: {beds}
                   </Typography>
                 </Stack>
               </CardContent>
             </Card>
-            <Stack spacing={2}>
-              {handle ? (
-                <Typography color="primary.main" variant="subtitle2">
-                  https://domain.com/products/{handle}
-                </Typography>
-              ) : (
-                <Box sx={{ borderRadius: '20px', bgcolor: 'var(--mui-palette-background-level2)', height: '24px' }} />
-              )}
-              {tags ? (
-                <Typography variant="subtitle2">{t('keywords')}: {tags.split(',').filter(Boolean).join(', ')}</Typography>
-              ) : (
-                <Box sx={{ borderRadius: '20px', bgcolor: 'var(--mui-palette-background-level1)', height: '24px' }} />
-              )}
-            </Stack>
           </Stack>
         </Grid>
       </Grid>

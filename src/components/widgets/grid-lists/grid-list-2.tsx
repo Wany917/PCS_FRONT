@@ -35,11 +35,15 @@ interface Project {
   userId: number;
   createdAt: string;
   updatedAt: string;
-  propertyImages: string[];
+  propertyImages: { link: string }[];
 }
 
-export function GridList2(): React.JSX.Element {
-  const { properties, propertiesLoading, propertiesError } = useGetProperties();
+interface GridList2Props {
+  filters?: PropertyFilters;
+}
+
+export function GridList2({ filters }: GridList2Props): React.JSX.Element {
+  const { properties, propertiesLoading, propertiesError } = useGetProperties(filters);
 
   if (propertiesLoading) {
     return <Typography>Loading...</Typography>;
@@ -107,7 +111,7 @@ function ProjectCard({ project }: ProjectCardProps): React.JSX.Element {
         </IconButton>
         <CardMedia
           component="img"
-          src={project.propertyImages[currentImageIndex] || '/assets/apartment-city-center.jpg'}
+          src={project.propertyImages[currentImageIndex]?.link || '/assets/apartment-city-center.jpg'}
           onError={(e) => { e.currentTarget.src = '/assets/apartment-city-center.jpg'; }}
           sx={{ bgcolor: 'var(--mui-palette-background-level2)', height: '200px' }}
         />

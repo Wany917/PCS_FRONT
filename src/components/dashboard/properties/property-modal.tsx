@@ -78,8 +78,8 @@ export function PropertyModal({ open }: ProductModalProps): React.JSX.Element | 
   const { t } = useTranslation();
   const router = useRouter();
 
-  // This component should load the product from the API based on the productId prop.
-  // For the sake of simplicity, we are just using a static product object.
+  // This component should load the property from the API based on the productId prop.
+  // For the sake of simplicity, we are just using a static property object.
 
   const handleClose = React.useCallback(() => {
     router.push(paths.dashboard.properties.list);
@@ -119,20 +119,26 @@ export function PropertyModal({ open }: ProductModalProps): React.JSX.Element | 
               <PropertyList divider={<Divider />} sx={{ '--PropertyItem-padding': '12px 24px' }}>
                 {(
                   [
-                    { key: t('name'), value: 'Erbology Aloe Vera' },
-                    { key: t('category'), value: t('healthcare') },
-                    { key: t('type'), value: t('physical') },
-                    { key: t('tags'), value: 'Natural, Eco-Friendly, Vegan' },
+                    { key: t('title'), value: 'Beautiful Beach House' },
+                    { key: t('propertyType'), value: t('house') },
+                    { key: t('country'), value: 'USA' },
+                    { key: t('state'), value: 'California' },
+                    { key: t('city'), value: 'Los Angeles' },
+                    { key: t('zipCode'), value: '90001' },
+                    { key: t('address'), value: '123 Beach Avenue' },
                     {
                       key: t('price'),
-                      value: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(24),
+                      value: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(450),
                     },
+                    { key: t('bedrooms'), value: 3 },
+                    { key: t('bathrooms'), value: 2 },
+                    { key: t('beds'), value: 3 },
                     {
                       key: t('status'),
                       value: (
                         <Chip
                           icon={<CheckCircleIcon color="var(--mui-palette-success-main)" weight="fill" />}
-                          label={t('published')}
+                          label={t('available')}
                           size="small"
                           variant="outlined"
                         />
@@ -156,28 +162,6 @@ export function PropertyModal({ open }: ProductModalProps): React.JSX.Element | 
                 <Box sx={{ overflowX: 'auto' }}>
                   <DataTable<Image> columns={imageColumns} rows={images} />
                 </Box>
-              </Card>
-            </Stack>
-            <Stack spacing={3}>
-              <Typography variant="h6">{t('stockInventory')}</Typography>
-              <Card sx={{ borderRadius: 1 }} variant="outlined">
-                <PropertyList divider={<Divider />} sx={{ '--PropertyItem-padding': '12px 24px' }}>
-                  {(
-                    [
-                      { key: 'SKU', value: '401_1BBXBK' },
-                      { key: t('barcode'), value: '' },
-                      { key: t('quantity'), value: 10 },
-                      { key: t('height'), value: '25 cm' },
-                      { key: t('width'), value: '15 cm' },
-                      { key: t('length'), value: '5 cm' },
-                      { key: t('weight'), value: '0.25 kg' },
-                    ] satisfies { key: string; value: React.ReactNode }[]
-                  ).map(
-                    (item): React.JSX.Element => (
-                      <PropertyItem key={item.key} name={item.key} value={item.value} />
-                    )
-                  )}
-                </PropertyList>
               </Card>
             </Stack>
           </Stack>

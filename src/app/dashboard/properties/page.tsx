@@ -12,7 +12,6 @@ import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
 
 import { paths } from '@/paths';
 import { PropertyModal } from '@/components/dashboard/properties/property-modal';
-import type { Filters } from '@/components/dashboard/properties/properties-filters';
 import { PropertiesFilters } from '@/components/dashboard/properties/properties-filters';
 import { PropertiesPagination } from '@/components/dashboard/properties/properties-pagination';
 import { PropertiesTable } from '@/components/dashboard/properties/properties-table';
@@ -25,7 +24,7 @@ interface PageProps {
 
 export default function Page({ searchParams }: PageProps): React.JSX.Element {
   const { t } = useTranslation();
-  const { category, previewId, sortDir, sku, status } = searchParams;
+  const { propertyType, country, city, priceRange, bedrooms, sortDir, previewId } = searchParams;
 
   const { properties, propertiesLoading, propertiesError } = useGetProperties(searchParams);
 
@@ -38,7 +37,7 @@ export default function Page({ searchParams }: PageProps): React.JSX.Element {
   }
 
   const orderedProperties = applySort(properties, sortDir);
-  const filteredProperties = applyFilters(orderedProperties, { category, sku, status });
+  const filteredProperties = applyFilters(orderedProperties, { propertyType, country, city, priceRange, bedrooms });
 
   return (
     <React.Fragment>
@@ -67,7 +66,7 @@ export default function Page({ searchParams }: PageProps): React.JSX.Element {
             </div>
           </Stack>
           <Card>
-            <PropertiesFilters filters={{ category, sku, status }} sortDir={sortDir} />
+            <PropertiesFilters filters={{ propertyType, country, city, priceRange, bedrooms }} sortDir={sortDir} />
             <Divider />
             <Box sx={{ overflowX: 'auto' }}>
               <PropertiesTable rows={filteredProperties} />
@@ -91,15 +90,21 @@ function applySort(row: any[], sortDir: 'asc' | 'desc' | undefined): any[] {
   });
 }
 
-function applyFilters(row: any[], { category, status, sku }: Filters): any[] {
+function applyFilters(row: any[], filters: Filters): any[] {
   return row.filter((item) => {
-    if (category && item.category !== category) {
+    if (filters.propertyType && item.propertyType !== filters.propertyType) {
       return false;
     }
-    if (status && item.status !== status) {
+    if (filters.country && item.country !== filters.country) {
       return false;
     }
-    if (sku && !item.sku?.toLowerCase().includes(sku.toLowerCase())) {
+    if (filters.city && item.city !== filters.city) {
+      return false;
+    }
+    if (filters.priceRange && (item.price < filters.priceRange[0] || item.price > filters.priceRange[1])) {
+      return false;
+    }
+    if (filters.bedrooms && item.bedrooms !== filters.bedrooms) {
       return false;
     }
     return true;

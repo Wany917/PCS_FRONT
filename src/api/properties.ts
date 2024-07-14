@@ -2,10 +2,20 @@ import useSWR from 'swr';
 import { useMemo } from 'react';
 import { fetcher, endpoints } from '../lib/axios';
 
-export function useGetProperties() {
-  const URL = endpoints.properties.list;
+interface PropertyFilters {
+  propertyType?: string;
+  country?: string;
+  state?: string;
+  city?: string;
+  priceRange?: [number, number];
+  bedrooms?: number;
+  bathrooms?: number;
+}
 
-  const { data, isLoading, error, isValidating } = useSWR(URL, fetcher);
+export function useGetProperties(filters: PropertyFilters) {
+  const URL = `${endpoints.properties.list}?${new URLSearchParams(filters as any).toString()}`;
+
+  const { data, isLoading, error, isValidating } = useSWR([URL, filters], fetcher);
 
   const memoizedValue = useMemo(
     () => ({
@@ -20,10 +30,8 @@ export function useGetProperties() {
 
   return memoizedValue;
 }
-
 export function useGetProperty(propertyId: number) {
   const URL = endpoints.properties.get(propertyId);
-  console.log(URL);
 
   const { data, isLoading, error, isValidating } = useSWR(URL, fetcher);
 

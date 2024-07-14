@@ -1,24 +1,52 @@
+'use client';
+
 import * as React from 'react';
-import type { Metadata } from 'next';
+import { useParams } from 'next/navigation';
 import RouterLink from 'next/link';
 import Box from '@mui/material/Box';
 import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { ArrowLeft as ArrowLeftIcon } from '@phosphor-icons/react/dist/ssr/ArrowLeft';
-
 import { config } from '@/config';
 import { paths } from '@/paths';
 import { PropertyEditForm } from '@/components/dashboard/properties/property-edit-form';
 import { useTranslation } from 'react-i18next';
-
-export const metadata = { title: `Details | Products | Dashboard | ${config.site.name}` } satisfies Metadata;
-
-// The page should load the product from the API based on the productId param and pass it to the form component.
-// For the sake of simplicity, we are just using a static product object.
+import { useGetProperty } from '@/api/properties';
 
 export default function Page(): React.JSX.Element {
   const { t } = useTranslation();
+  const params = useParams();
+  const propertyId = params.propertyId ? parseInt(params.propertyId, 10) : null;
+
+  const { property, propertyLoading, propertyError } = useGetProperty(propertyId);
+
+  if (propertyLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (propertyError) {
+    return <div>Error loading property.</div>;
+  }
+
+  const propertyData = {
+    id: property.id,
+    title: property.title,
+    propertyType: property.propertyType,
+    description: property.description,
+    country: property.country,
+    state: property.state,
+    city: property.city,
+    zipCode: property.zipCode,
+    line1: property.line1,
+    price: parseFloat(property.price),
+    images: property.propertyImages.map(img => ({ id: img.id, url: img.link, fileName: img.link })),
+    bedrooms: property.bedrooms,
+    bathrooms: property.bathrooms,
+    beds: property.beds,
+    userId: property.userId,
+    isPrivate: property.isPrivate,
+  };
 
   return (
     <Box
@@ -40,36 +68,14 @@ export default function Page(): React.JSX.Element {
               variant="subtitle2"
             >
               <ArrowLeftIcon fontSize="var(--icon-fontSize-md)" />
-              {t('products')}
+              {t('properties')}
             </Link>
           </div>
           <div>
-            <Typography variant="h4">{t('editProduct')}</Typography>
+            <Typography variant="h4">{t('editProperty')}</Typography>
           </div>
         </Stack>
-        <PropertyEditForm
-          product={{
-            id: 'PRD-001',
-            name: 'Erbology Aloe Vera',
-            handle: 'healthcare-erbology',
-            category: 'Healthcare',
-            type: 'physical',
-            description:
-              '<h2>Erbology Aloe Vera is a natural, eco-friendly, and vegan product.</h2><p>It is made from natural ingredients. It is a great product for healthcare.</p>',
-            tags: 'Natural, Eco-Friendly, Vegan',
-            currency: 'USD',
-            price: 24,
-            images: [{ id: 'IMG-001', url: '/assets/product-1.png', fileName: 'product-1.png' }],
-            sku: '401_1BBXBK',
-            barcode: '',
-            quantity: 10,
-            backorder: true,
-            height: 25,
-            width: 15,
-            length: 5,
-            weight: 0.25,
-          }}
-        />
+        <PropertyEditForm property={propertyData} />
       </Stack>
     </Box>
   );
