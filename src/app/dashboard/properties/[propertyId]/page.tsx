@@ -8,7 +8,6 @@ import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { ArrowLeft as ArrowLeftIcon } from '@phosphor-icons/react/dist/ssr/ArrowLeft';
-import { config } from '@/config';
 import { paths } from '@/paths';
 import { PropertyEditForm } from '@/components/dashboard/properties/property-edit-form';
 import { useTranslation } from 'react-i18next';

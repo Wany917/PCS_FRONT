@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import RouterLink from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -71,12 +71,13 @@ const images = [
 
 export interface ProductModalProps {
   open: boolean;
-  productId?: string;
+  propertyId: string;
 }
 
-export function PropertyModal({ open }: ProductModalProps): React.JSX.Element | null {
+export function PropertyModal({ open, propertyId }: ProductModalProps): React.JSX.Element | null {
   const { t } = useTranslation();
   const router = useRouter();
+
 
   // This component should load the property from the API based on the productId prop.
   // For the sake of simplicity, we are just using a static property object.
@@ -109,7 +110,7 @@ export function PropertyModal({ open }: ProductModalProps): React.JSX.Element | 
               <Button
                 color="secondary"
                 component={RouterLink}
-                href={paths.dashboard.properties.details('1')}
+                href={paths.dashboard.properties.details(propertyId)}
                 startIcon={<PencilSimpleIcon />}
               >
                 {t('edit')}
