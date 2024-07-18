@@ -19,7 +19,7 @@ export interface Config {
 
 export const config = {
   site: {
-    name: 'Devias Kit Pro',
+    name: 'Paris Care Taker',
     description: '',
     colorScheme: 'light',
     themeColor: '#090a0b',

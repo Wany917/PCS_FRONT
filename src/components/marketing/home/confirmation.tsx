@@ -7,13 +7,24 @@ import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import { useEffect, useState } from 'react';
 
 export default function Confirmation(): React.JSX.Element {
+  const [reservationDetails, setReservationDetails] = useState<any>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    const details = JSON.parse(localStorage.getItem('reservationDetails') || '{}');
+    setReservationDetails(details);
+  }, []);
 
   const handleBackHomeClick = () => {
     router.push('/');
   };
+
+  if (!reservationDetails) {
+    return <Typography>Loading...</Typography>;
+  }
 
   return (
     <Box sx={{ pt: '40px' }}>
@@ -30,16 +41,16 @@ export default function Confirmation(): React.JSX.Element {
               <strong>Détails de la réservation :</strong>
             </Typography>
             <Typography variant="body1">
-              Dates : 30 sept. - 5 oct.
+              Titre: {reservationDetails.title}
             </Typography>
             <Typography variant="body1">
-              Voyageurs : 1 voyageur
+              Dates : {reservationDetails.startDate} - {reservationDetails.endDate}
             </Typography>
             <Typography variant="body1">
-              Prestations : Taxis, Nettoyage, Service personnalisé
+              Voyageurs : {reservationDetails.travelers} voyageur{reservationDetails.travelers > 1 ? 's' : ''}
             </Typography>
             <Typography variant="body1">
-              Total : 350 €
+              Total : {reservationDetails.totalAmount} €
             </Typography>
             <Typography variant="body1">
               Un email de confirmation vous a été envoyé avec les détails de votre réservation.

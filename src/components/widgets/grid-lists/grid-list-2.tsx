@@ -38,6 +38,15 @@ interface Project {
   propertyImages: { link: string }[];
 }
 
+interface PropertyFilters {
+  type?: string;
+  minPrice?: number | null;
+  maxPrice?: number | null;
+  bedrooms?: number | null;
+  beds?: number | null;
+  facilities?: number[];
+}
+
 interface GridList2Props {
   filters?: PropertyFilters;
 }

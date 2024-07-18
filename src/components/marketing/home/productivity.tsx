@@ -1,6 +1,6 @@
 'use client';
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -13,12 +13,11 @@ import Typography from '@mui/material/Typography';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers';
+import differenceInDays from 'date-fns/differenceInDays';
 
-const hotelPricePerNight = 70;
-const numberOfNights = 1; 
-const cleaningFee = 8; 
-const serviceFee = 13; 
-const taxes = 11; 
+const cleaningFee = 8;
+const serviceFee = 13;
+const taxes = 11;
 
 const prestations = [
   { id: 1, name: 'Nettoyage quotidien', price: 25 },
@@ -32,7 +31,13 @@ export function Productivity(): React.JSX.Element {
   const [customDate, setCustomDate] = useState<Date | null>(null);
   const [customTime, setCustomTime] = useState<Date | null>(null);
   const [customPrestationPrice, setCustomPrestationPrice] = useState<number>(0);
+  const [reservationDetails, setReservationDetails] = useState<any>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    const details = JSON.parse(localStorage.getItem('reservationDetails') || '{}');
+    setReservationDetails(details);
+  }, []);
 
   const handleCheckboxChange = (id: number) => {
     setSelectedPrestations((prev) =>
@@ -50,8 +55,9 @@ export function Productivity(): React.JSX.Element {
   };
 
   const calculateTotalPrice = () => {
+    if (!reservationDetails) return 0;
     const totalPrestationPrice = calculateTotalPrestationPrice();
-    const hotelTotalPrice = hotelPricePerNight * numberOfNights;
+    const hotelTotalPrice = Number(reservationDetails.price) * reservationDetails.numberOfNights;
     const total = totalPrestationPrice + hotelTotalPrice + cleaningFee + serviceFee + taxes;
     return total;
   };
@@ -65,6 +71,14 @@ export function Productivity(): React.JSX.Element {
       selectedPrestationNames.push(`Custom: ${customPrestation} at ${customDate?.toLocaleDateString()} ${customTime?.toLocaleTimeString()}`);
     }
 
+    const updatedReservationDetails = {
+      ...reservationDetails,
+      prestations: selectedPrestationNames,
+      totalAmount: calculateTotalPrice(),
+    };
+
+    localStorage.setItem('reservationDetails', JSON.stringify(updatedReservationDetails));
+
     alert(`Réservation pour les prestations : ${selectedPrestationNames.join(', ')}`);
     router.push('/validation');
   };
@@ -74,9 +88,13 @@ export function Productivity(): React.JSX.Element {
   };
 
   const handleBackToHeroClick = () => {
-    const heroId = '1';
+    const heroId = reservationDetails?.id || '1';
     router.push(`/${heroId}`);
   };
+
+  if (!reservationDetails) {
+    return <Typography>Loading...</Typography>;
+  }
 
   return (
     <Container maxWidth="md" sx={{ py: 4, position: 'relative' }}>
@@ -137,7 +155,7 @@ export function Productivity(): React.JSX.Element {
           Aucun montant ne vous sera débité pour le moment
         </Typography>
         <Typography variant="body1">
-          {hotelPricePerNight} € x {numberOfNights} nuit{numberOfNights > 1 ? 's' : ''}: {hotelPricePerNight * numberOfNights} €
+          {reservationDetails.price} € x {reservationDetails.numberOfNights} nuit{reservationDetails.numberOfNights > 1 ? 's' : ''}: {Number(reservationDetails.price) * reservationDetails.numberOfNights} €
         </Typography>
         <Typography variant="body1">
           Frais de ménage: {cleaningFee} €

@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from 'react';
-import RouterLink from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useState } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
@@ -17,10 +17,9 @@ import IconButton from '@mui/material/IconButton';
 import Popover from '@mui/material/Popover';
 import PublicIcon from '@mui/icons-material/Public';
 import LoginIcon from '@mui/icons-material/Login';
-import TuneIcon from '@mui/icons-material/Tune'; // Icône de filtres
+import TuneIcon from '@mui/icons-material/Tune';
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
-import { paths } from '@/paths';
 import BeachAccessIcon from '@mui/icons-material/BeachAccess';
 import HomeIcon from '@mui/icons-material/Home';
 import NaturePeopleIcon from '@mui/icons-material/NaturePeople';
@@ -28,54 +27,34 @@ import CabinIcon from '@mui/icons-material/Cabin';
 import CastleIcon from '@mui/icons-material/Castle';
 import ApartmentIcon from '@mui/icons-material/Apartment';
 import HotelIcon from '@mui/icons-material/Hotel';
-import { Modal2 } from '@/components/widgets/modals/modal-2';
-import { Modal6 } from '@/components/widgets/modals/modal-6';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import { useGetFacilities } from '@/api/facilities';
+import 'react-datepicker/dist/react-datepicker.css';
+import { GridList2 } from '@/components/widgets/grid-lists/grid-list-2';
 
 export function MainNav(): React.JSX.Element {
   const pathname = usePathname();
-  const [anchorElLanguage, setAnchorElLanguage] = React.useState<null | HTMLElement>(null);
-  const [anchorElLogin, setAnchorElLogin] = React.useState<null | HTMLElement>(null);
-  const [anchorElDateRange, setAnchorElDateRange] = React.useState<null | HTMLElement>(null);
-  const [anchorElTravelers, setAnchorElTravelers] = React.useState<null | HTMLElement>(null);
-  const [anchorElFilters, setAnchorElFilters] = React.useState<null | HTMLElement>(null);
-  const [startDate, setStartDate] = React.useState<Date | null>(null);
-  const [endDate, setEndDate] = React.useState<Date | null>(null);
-  const [travelers, setTravelers] = React.useState({ adults: 1, children: 0, babies: 0, pets: 0 });
-  const [showMoreEquipments, setShowMoreEquipments] = React.useState(false);
+  const router = useRouter();
+  const { facilities, facilitiesLoading, facilitiesError } = useGetFacilities(); // Utiliser le hook pour récupérer les facilités
 
-  const handleLanguageClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorElLanguage(event.currentTarget);
-  };
+  const [anchorElLanguage, setAnchorElLanguage] = useState<null | HTMLElement>(null);
+  const [anchorElLogin, setAnchorElLogin] = useState<null | HTMLElement>(null);
+  const [anchorElDateRange, setAnchorElDateRange] = useState<null | HTMLElement>(null);
+  const [anchorElTravelers, setAnchorElTravelers] = useState<null | HTMLElement>(null);
+  const [anchorElFilters, setAnchorElFilters] = useState<null | HTMLElement>(null);
 
-  const handleLanguageClose = () => {
-    setAnchorElLanguage(null);
-  };
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [travelers, setTravelers] = useState({ adults: 1, children: 0, babies: 0, pets: 0 });
 
-  const handleLoginClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorElLogin(event.currentTarget);
-  };
-
-  const handleLoginClose = () => {
-    setAnchorElLogin(null);
-  };
-
-  const handleDateRangeClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorElDateRange(event.currentTarget);
-  };
-
-  const handleDateRangeClose = () => {
-    setAnchorElDateRange(null);
-  };
-
-  const handleTravelersClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorElTravelers(event.currentTarget);
-  };
-
-  const handleTravelersClose = () => {
-    setAnchorElTravelers(null);
-  };
+  // États pour les filtres
+  const [selectedType, setSelectedType] = useState<string>('all');
+  const [minPrice, setMinPrice] = useState<number | null>(null);
+  const [maxPrice, setMaxPrice] = useState<number | null>(null);
+  const [selectedBedrooms, setSelectedBedrooms] = useState<number | null>(null);
+  const [selectedBeds, setSelectedBeds] = useState<number | null>(null);
+  const [selectedFacilities, setSelectedFacilities] = useState<number[]>([]);
 
   const handleFiltersClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorElFilters(event.currentTarget);
@@ -85,63 +64,26 @@ export function MainNav(): React.JSX.Element {
     setAnchorElFilters(null);
   };
 
-  const toggleShowMoreEquipments = () => {
-    setShowMoreEquipments((prev) => !prev);
-  };
-
-  const openLanguage = Boolean(anchorElLanguage);
-  const idLanguage = openLanguage ? 'language-popover' : undefined;
-
-  const openLogin = Boolean(anchorElLogin);
-  const idLogin = openLogin ? 'login-popover' : undefined;
-
-  const openDateRange = Boolean(anchorElDateRange);
-  const idDateRange = openDateRange ? 'date-range-popover' : undefined;
-
-  const openTravelers = Boolean(anchorElTravelers);
-  const idTravelers = openTravelers ? 'travelers-popover' : undefined;
-
-  const openFilters = Boolean(anchorElFilters);
-  const idFilters = openFilters ? 'filters-popover' : undefined;
-
-  const handleTravelerChange = (type: string, operation: 'increment' | 'decrement') => {
-    setTravelers((prev) => {
-      const newValue = operation === 'increment' ? prev[type] + 1 : prev[type] - 1;
-      return {
-        ...prev,
-        [type]: Math.max(0, newValue),
-      };
+  const handleSearch = () => {
+    const query = {
+      type: selectedType,
+      minPrice,
+      maxPrice,
+      bedrooms: selectedBedrooms,
+      beds: selectedBeds,
+      facilities: selectedFacilities,
+    };
+    router.push({
+      pathname: '/search',
+      query,
     });
   };
 
-  const equipments = [
-    "Piscine",
-    "Jacuzzi",
-    "Parking gratuit",
-    "Wifi",
-    "Cuisine",
-    "Lave-linge",
-    "Sèche-linge",
-    "Climatisation",
-    "Chauffage",
-    "Espace de travail dédié",
-    "Télévision",
-    "Sèche-cheveux",
-    "Fer à repasser",
-    "Station de recharge pour véhicules électriques",
-    "Lit pour bébé",
-    "Lit king size",
-    "Salle de sport",
-    "Barbecue",
-    "Petit déjeuner",
-    "Cheminée",
-    "Logement fumeur",
-    "Bord de mer",
-    "Front de mer",
-    "Accessible à skis",
-    "Détecteur de fumée",
-    "Détecteur de monoxyde de carbone",
-  ];
+  const handleFacilityChange = (id: number) => {
+    setSelectedFacilities((prev) =>
+      prev.includes(id) ? prev.filter((facilityId) => facilityId !== id) : [...prev, id]
+    );
+  };
 
   return (
     <React.Fragment>
@@ -169,7 +111,7 @@ export function MainNav(): React.JSX.Element {
             sx={{ width: '100%' }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Button component={RouterLink} href={paths.home} sx={{ color: 'inherit', display: 'flex', alignItems: 'center' }}>
+              <Button href="/" sx={{ color: 'inherit', display: 'flex', alignItems: 'center' }}>
                 <Typography variant="h6" noWrap sx={{ fontWeight: 'bold', color: '#FF385C' }}>
                   ParisCareTaker
                 </Typography>
@@ -207,7 +149,7 @@ export function MainNav(): React.JSX.Element {
                 variant="outlined"
                 placeholder="Arrivée"
                 size="small"
-                onClick={handleDateRangeClick}
+                onClick={handleFiltersClick}
                 value={startDate ? startDate.toLocaleDateString() : ''}
                 InputProps={{ readOnly: true }}
                 sx={{ flexGrow: 1, mx: 1 }}
@@ -226,7 +168,6 @@ export function MainNav(): React.JSX.Element {
                 variant="outlined"
                 placeholder="Voyageurs"
                 size="small"
-                onClick={handleTravelersClick}
                 value={`${travelers.adults + travelers.children} voyageurs`}
                 InputProps={{
                   startAdornment: (
@@ -240,6 +181,7 @@ export function MainNav(): React.JSX.Element {
               />
               <Button
                 startIcon={<SearchIcon />}
+                onClick={handleSearch}
                 sx={{ bgcolor: '#FF385C', color: 'white', borderRadius: '50px', '&:hover': { bgcolor: '#FF385C' } }}
               >
                 Rechercher
@@ -247,17 +189,17 @@ export function MainNav(): React.JSX.Element {
             </Box>
 
             <Stack direction="row" spacing={1} alignItems="center">
-              <Button component={RouterLink} href={paths.auth.signUp} variant="contained" sx={{ bgcolor: '#FF385C', color: 'white', borderRadius: '50px', '&:hover': { bgcolor: '#FF385C' } }}>
+              <Button href="/sign-up" variant="contained" sx={{ bgcolor: '#FF385C', color: 'white', borderRadius: '50px', '&:hover': { bgcolor: '#FF385C' } }}>
                 Mettre mon logement sur Airbnb
               </Button>
-              <IconButton sx={{ color: 'text.secondary' }} onClick={handleLanguageClick}>
+              <IconButton sx={{ color: 'text.secondary' }}>
                 <PublicIcon />
               </IconButton>
               <Popover
-                id={idLanguage}
-                open={openLanguage}
+                id="language-popover"
+                open={Boolean(anchorElLanguage)}
                 anchorEl={anchorElLanguage}
-                onClose={handleLanguageClose}
+                onClose={() => setAnchorElLanguage(null)}
                 anchorOrigin={{
                   vertical: 'bottom',
                   horizontal: 'center',
@@ -267,10 +209,13 @@ export function MainNav(): React.JSX.Element {
                   horizontal: 'center',
                 }}
               >
-                <Modal2 />
+                <Box sx={{ p: 2 }}>
+                  <Typography variant="body1">Sélectionner la langue</Typography>
+                  {/* Ajouter les options de sélection de langue ici */}
+                </Box>
               </Popover>
 
-              <IconButton sx={{ color: 'text.secondary' }} component={RouterLink} href={paths.auth.signIn} variant="contained">
+              <IconButton sx={{ color: 'text.secondary' }} href="/sign-in" variant="contained">
                 <LoginIcon />
               </IconButton>
             </Stack>
@@ -315,93 +260,8 @@ export function MainNav(): React.JSX.Element {
         </Container>
 
         <Popover
-          id={idDateRange}
-          open={openDateRange}
-          anchorEl={anchorElDateRange}
-          onClose={handleDateRangeClose}
-          anchorOrigin={{
-            vertical: 'bottom',
-            horizontal: 'center',
-          }}
-          transformOrigin={{
-            vertical: 'top',
-            horizontal: 'center',
-          }}
-        >
-          <Box sx={{ p: 3 }}>
-            <DatePicker
-              selectsRange
-              startDate={startDate}
-              endDate={endDate}
-              onChange={(update) => {
-                const [start, end] = update;
-                setStartDate(start);
-                setEndDate(end);
-              }}
-              isClearable={true}
-              inline
-            />
-          </Box>
-        </Popover>
-
-        <Popover
-          id={idTravelers}
-          open={openTravelers}
-          anchorEl={anchorElTravelers}
-          onClose={handleTravelersClose}
-          anchorOrigin={{
-            vertical: 'bottom',
-            horizontal: 'center',
-          }}
-          transformOrigin={{
-            vertical: 'top',
-            horizontal: 'center',
-          }}
-        >
-          <Box sx={{ p: 3, width: '300px' }}>
-            {['adults', 'children', 'babies', 'pets'].map((type) => (
-              <Box key={type} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Box>
-                  <Typography variant="subtitle1">
-                    {type === 'adults' && 'Adultes'}
-                    {type === 'children' && 'Enfants'}
-                    {type === 'babies' && 'Bébés'}
-                    {type === 'pets' && 'Animaux domestiques'}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {type === 'adults' && '13 ans et plus'}
-                    {type === 'children' && 'De 2 à 12 ans'}
-                    {type === 'babies' && 'Moins de 2 ans'}
-                    {type === 'pets' && 'Vous voyagez avec un animal d\'assistance ?'}
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={() => handleTravelerChange(type, 'decrement')}
-                  >
-                    -
-                  </Button>
-                  <Typography variant="body2" sx={{ mx: 2 }}>
-                    {travelers[type]}
-                  </Typography>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={() => handleTravelerChange(type, 'increment')}
-                  >
-                    +
-                  </Button>
-                </Box>
-              </Box>
-            ))}
-          </Box>
-        </Popover>
-
-        <Popover
-          id={idFilters}
-          open={openFilters}
+          id="filters-popover"
+          open={Boolean(anchorElFilters)}
           anchorEl={anchorElFilters}
           onClose={handleFiltersClose}
           anchorOrigin={{
@@ -417,69 +277,51 @@ export function MainNav(): React.JSX.Element {
             <Typography variant="h6">Filtres</Typography>
             <Typography variant="subtitle1" sx={{ mt: 2 }}>Type de logement</Typography>
             <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
-              <Button variant="outlined">Tous les types</Button>
-              <Button variant="outlined">Chambre</Button>
-              <Button variant="outlined">Logement entier</Button>
+              <Button variant={selectedType === 'all' ? 'contained' : 'outlined'} onClick={() => setSelectedType('all')}>Tous les types</Button>
+              <Button variant={selectedType === 'room' ? 'contained' : 'outlined'} onClick={() => setSelectedType('room')}>Chambre</Button>
+              <Button variant={selectedType === 'entire' ? 'contained' : 'outlined'} onClick={() => setSelectedType('entire')}>Logement entier</Button>
             </Stack>
 
             <Typography variant="subtitle1" sx={{ mt: 2 }}>Fourchette de prix</Typography>
             <Box sx={{ mt: 1 }}>
-              <TextField label="Minimum" variant="outlined" size="small" sx={{ width: '100px', mr: 1 }} />
-              <TextField label="Maximum" variant="outlined" size="small" sx={{ width: '100px' }} />
+              <TextField label="Minimum" variant="outlined" size="small" sx={{ width: '100px', mr: 1 }} value={minPrice || ''} onChange={(e) => setMinPrice(Number(e.target.value))} />
+              <TextField label="Maximum" variant="outlined" size="small" sx={{ width: '100px' }} value={maxPrice || ''} onChange={(e) => setMaxPrice(Number(e.target.value))} />
             </Box>
 
             <Typography variant="subtitle1" sx={{ mt: 2 }}>Chambres et lits</Typography>
             <Box sx={{ mt: 1 }}>
               <Typography variant="body2">Chambres</Typography>
               <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                <Button variant="outlined">Tout</Button>
+                <Button variant={!selectedBedrooms ? 'contained' : 'outlined'} onClick={() => setSelectedBedrooms(null)}>Tout</Button>
                 {[1, 2, 3, 4, 5, '6+'].map((num) => (
-                  <Button key={num} variant="outlined">{num}</Button>
+                  <Button key={num} variant={selectedBedrooms === num ? 'contained' : 'outlined'} onClick={() => setSelectedBedrooms(num)}>{num}</Button>
                 ))}
               </Stack>
               <Typography variant="body2" sx={{ mt: 2 }}>Lits</Typography>
               <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                <Button variant="outlined">Tout</Button>
+                <Button variant={!selectedBeds ? 'contained' : 'outlined'} onClick={() => setSelectedBeds(null)}>Tout</Button>
                 {[1, 2, 3, 4, 5, '6+'].map((num) => (
-                  <Button key={num} variant="outlined">{num}</Button>
+                  <Button key={num} variant={selectedBeds === num ? 'contained' : 'outlined'} onClick={() => setSelectedBeds(num)}>{num}</Button>
                 ))}
               </Stack>
             </Box>
 
-            <Typography variant="subtitle1" sx={{ mt: 2 }}>Équipements</Typography>
+            <Typography variant="subtitle1" sx={{ mt: 2 }}>Facilités</Typography>
             <Box sx={{ mt: 1 }}>
-              {equipments.slice(0, 6).map((item) => (
+              {facilities.map((facility) => (
                 <FormControlLabel
-                  key={item}
-                  control={<Checkbox />}
-                  label={item}
+                  key={facility.id}
+                  control={<Checkbox checked={selectedFacilities.includes(facility.id)} onChange={() => handleFacilityChange(facility.id)} />}
+                  label={facility.name}
                   sx={{ display: 'block', mt: 1 }}
                 />
               ))}
-              {!showMoreEquipments && (
-                <Button onClick={toggleShowMoreEquipments} sx={{ mt: 2 }}>
-                  Afficher plus
-                </Button>
-              )}
-              {showMoreEquipments && (
-                <>
-                  {equipments.slice(6).map((item) => (
-                    <FormControlLabel
-                      key={item}
-                      control={<Checkbox />}
-                      label={item}
-                      sx={{ display: 'block', mt: 1 }}
-                    />
-                  ))}
-                  <Button onClick={toggleShowMoreEquipments} sx={{ mt: 2 }}>
-                    Afficher moins
-                  </Button>
-                </>
-              )}
             </Box>
           </Box>
         </Popover>
       </Box>
+
+      <GridList2 filters={{ type: selectedType, minPrice, maxPrice, bedrooms: selectedBedrooms, beds: selectedBeds, facilities: selectedFacilities }} />
     </React.Fragment>
   );
 }

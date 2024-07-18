@@ -1,6 +1,6 @@
 'use client';
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -21,33 +21,11 @@ import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
 const stripePromise = loadStripe('your-publishable-key-here');
 
-const hotelPricePerNight = 100;
-const numberOfNights = 3;
-
 const prestations = [
   { id: 1, name: 'Taxis', price: 20 },
   { id: 2, name: 'Nettoyage', price: 15 },
   { id: 3, name: 'Valise', price: 10 },
 ];
-
-const selectedPrestations = [1, 2]; // Example of selected prestations
-const customPrestation = "Service personnalisé";
-const customPrestationPrice = 50;
-
-const calculateTotalPrestationPrice = () => {
-  const selectedPrestationPrices = prestations
-    .filter((prest) => selectedPrestations.includes(prest.id))
-    .map((prest) => prest.price);
-
-  const totalPrestationPrice = selectedPrestationPrices.reduce((acc, curr) => acc + curr, 0);
-  return totalPrestationPrice + (customPrestation ? customPrestationPrice : 0);
-};
-
-const calculateTotalPrice = () => {
-  const totalPrestationPrice = calculateTotalPrestationPrice();
-  const hotelTotalPrice = hotelPricePerNight * numberOfNights;
-  return totalPrestationPrice + hotelTotalPrice;
-};
 
 function StripeForm() {
   const stripe = useStripe();
@@ -83,10 +61,21 @@ export function Features(): React.JSX.Element {
   const [cardCvc, setCardCvc] = useState<string>('');
   const router = useRouter();
 
+  const [reservationDetails, setReservationDetails] = useState<any>(null);
+
+  useEffect(() => {
+    const details = JSON.parse(localStorage.getItem('reservationDetails') || '{}');
+    setReservationDetails(details);
+  }, []);
+
   const handleReserveClick = () => {
     alert(`Votre réservation a été validée avec le moyen de paiement: ${paymentMethod}`);
     router.push('/confirmation');
   };
+
+  if (!reservationDetails || Object.keys(reservationDetails).length === 0) {
+    return <Typography>Loading...</Typography>;
+  }
 
   return (
     <Box sx={{ pt: '40px' }}>
@@ -110,8 +99,9 @@ export function Features(): React.JSX.Element {
                   }}
                 >
                   <Typography variant="h6">Votre voyage</Typography>
-                  <Typography variant="body1">Dates: 30 sept. - 5 oct.</Typography>
-                  <Typography variant="body1">Voyageurs: 1 voyageur</Typography>
+                  <Typography variant="body1">Titre: {reservationDetails.title}</Typography>
+                  <Typography variant="body1">Dates: {reservationDetails.startDate} - {reservationDetails.endDate}</Typography>
+                  <Typography variant="body1">Voyageurs: {reservationDetails.travelers} voyageur(s)</Typography>
                 </Paper>
               </Grid>
               <Grid item xs={12} md={6}>
@@ -128,17 +118,11 @@ export function Features(): React.JSX.Element {
                 >
                   <Typography variant="h6">Prestations choisies</Typography>
                   {prestations
-                    .filter((prest) => selectedPrestations.includes(prest.id))
                     .map((prest) => (
                       <Typography key={prest.id} variant="body1">
                         {prest.name} - {prest.price} €
                       </Typography>
                     ))}
-                  {customPrestation && (
-                    <Typography variant="body1">
-                      {customPrestation} - {customPrestationPrice} €
-                    </Typography>
-                  )}
                 </Paper>
               </Grid>
             </Grid>
@@ -156,14 +140,7 @@ export function Features(): React.JSX.Element {
                   }}
                 >
                   <Typography variant="h6">Détails du prix</Typography>
-                  <Typography variant="body1">Prix par nuit: {hotelPricePerNight} €</Typography>
-                  <Typography variant="body1">Nombre de nuits: {numberOfNights}</Typography>
-                  <Typography variant="body1">
-                    Total des prestations: {calculateTotalPrestationPrice()} €
-                  </Typography>
-                  <Typography variant="body1">
-                    Total: {calculateTotalPrice()} €
-                  </Typography>
+                  <Typography variant="body1">Total: {reservationDetails.totalAmount} €</Typography>
                 </Paper>
               </Grid>
               <Grid item xs={12} md={6}>

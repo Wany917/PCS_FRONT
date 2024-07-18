@@ -22,7 +22,7 @@ export function SplitLayout({ children }: SplitLayoutProps): React.JSX.Element {
       >
         <Stack spacing={4} sx={{ maxWidth: '700px' }}>
           <Stack spacing={1}>
-            <Typography variant="h4">Welcome to Devias Kit PRO</Typography>
+            <Typography variant="h4">Welcome to Paris Care Taker</Typography>
             <Typography color="text.secondary">
               A professional template that comes with ready-to-use MUI components developed with one common goal in
               mind, help you build faster & beautiful applications.

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -9,7 +9,7 @@ import Chip from '@mui/material/Chip';
 import Container from '@mui/material/Container';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import Grid from '@mui/material/Unstable_Grid2';
+import Grid from '@mui/material/Grid';
 import IconButton from '@mui/material/IconButton';
 import { Star as StarIcon, NavigateBefore as NavigateBeforeIcon, NavigateNext as NavigateNextIcon } from '@mui/icons-material';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -17,7 +17,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DateRangePicker, DateRange } from '@mui/x-date-pickers-pro';
 import TextField from '@mui/material/TextField';
 import { differenceInDays } from 'date-fns';
-import { GoogleMap, LoadScript } from '@react-google-maps/api';
+import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
 import { useGetProperty } from '@/api/properties';
 
 const extraChargePerPerson = 50;
@@ -26,7 +26,6 @@ export function Included(): React.JSX.Element {
   const router = useRouter();
   const { heroId } = useParams();
   const propertyID = parseInt(heroId, 10);
-  console.log(heroId);
 
   // Vérifiez que l'ID est un nombre valide
   if (isNaN(propertyID)) {
@@ -35,26 +34,74 @@ export function Included(): React.JSX.Element {
 
   const { property, propertyLoading, propertyError } = useGetProperty(propertyID);
 
-  console.log(`Property data:`, property); // Log les données de la propriété
-  console.log(`Property loading:`, propertyLoading); // Log l'état de chargement
-  console.log(`Property error:`, propertyError); // Log l'état d'erreur
-
   const [dateRange, setDateRange] = useState<DateRange<Date>>([null, null]);
   const [travelers, setTravelers] = useState<number>(1);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [propertyImages, setPropertyImages] = useState<string[]>([]);
+  const [mapCenter, setMapCenter] = useState<{ lat: number, lng: number } | null>(null);
+  const [totalAmount, setTotalAmount] = useState<number | null>(null);
+  const [numberOfNights, setNumberOfNights] = useState<number>(0);
 
-  const calculateTotalAmount = () => {
-    if (dateRange[0] && dateRange[1]) {
-      const days = differenceInDays(dateRange[1], dateRange[0]);
-      const baseAmount = days * Number(property.price);
-      const totalAmount = baseAmount * travelers;
-      return totalAmount;
+  useEffect(() => {
+    if (property && property.propertyImages) {
+      setPropertyImages(property.propertyImages.map(img => img.link));
     }
-    return 0;
+  }, [property]);
+
+  useEffect(() => {
+    if (property) {
+      const address = `${property.line1}, ${property.city}, ${property.state}, ${property.country}, ${property.zipCode}`;
+      getCoordinatesFromAddress(address).then(coordinates => {
+        setMapCenter(coordinates);
+      });
+    }
+  }, [property]);
+
+  useEffect(() => {
+    const calculateTotalAmount = () => {
+      if (dateRange[0] && dateRange[1] && property) {
+        const startDate = new Date(dateRange[0]);
+        const endDate = new Date(dateRange[1]);
+        if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+          const days = differenceInDays(endDate, startDate);
+          setNumberOfNights(days);
+          const baseAmount = days * Number(property.price);
+          const totalAmount = baseAmount * travelers;
+          return totalAmount;
+        }
+      }
+      return 0;
+    };
+
+    setTotalAmount(calculateTotalAmount());
+  }, [dateRange, travelers, property]);
+
+  const getCoordinatesFromAddress = async (address: string) => {
+    const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`);
+    const data = await response.json();
+    if (data.results && data.results.length > 0) {
+      const location = data.results[0].geometry.location;
+      return { lat: location.lat, lng: location.lng };
+    } else {
+      return { lat: 0, lng: 0 };
+    }
   };
 
   const handleReserveClick = () => {
-    alert(`Réservation pour ${property.title} du ${dateRange[0]?.toLocaleDateString()} au ${dateRange[1]?.toLocaleDateString()} pour ${calculateTotalAmount()} € avec ${travelers} voyageurs`);
+    const startDate = dateRange[0] ? new Date(dateRange[0]).toLocaleDateString() : 'N/A';
+    const endDate = dateRange[1] ? new Date(dateRange[1]).toLocaleDateString() : 'N/A';
+
+    const reservationDetails = {
+      title: property.title,
+      startDate: startDate,
+      endDate: endDate,
+      price: property.price,
+      numberOfNights: numberOfNights,
+      totalAmount: totalAmount,
+      travelers: travelers,
+    };
+
+    localStorage.setItem('reservationDetails', JSON.stringify(reservationDetails));
     router.push('/prestation');
   };
 
@@ -63,11 +110,11 @@ export function Included(): React.JSX.Element {
   };
 
   const handleNextImage = () => {
-    setCurrentImageIndex((prevIndex) => (prevIndex + 1) % (property.propertyImages.length || 1));
+    setCurrentImageIndex((prevIndex) => (prevIndex + 1) % (propertyImages.length || 1));
   };
 
   const handlePrevImage = () => {
-    setCurrentImageIndex((prevIndex) => (prevIndex - 1 + (property.propertyImages.length || 1)) % (property.propertyImages.length || 1));
+    setCurrentImageIndex((prevIndex) => (prevIndex - 1 + (propertyImages.length || 1)) % (propertyImages.length || 1));
   };
 
   if (propertyLoading) {
@@ -90,8 +137,8 @@ export function Included(): React.JSX.Element {
             </Box>
             <Typography variant="h4">{property.title}</Typography>
             <Grid container spacing={2}>
-              <Grid xs={12} md={6}>
-                {property.propertyImages && property.propertyImages.length > 0 && (
+              <Grid item xs={12} md={6}>
+                {propertyImages.length > 0 ? (
                   <Box sx={{ position: 'relative' }}>
                     <IconButton sx={{ position: 'absolute', top: '50%', left: 0, transform: 'translateY(-50%)', zIndex: 10 }} onClick={handlePrevImage}>
                       <NavigateBeforeIcon />
@@ -100,14 +147,19 @@ export function Included(): React.JSX.Element {
                       <NavigateNextIcon />
                     </IconButton>
                     <Box component="img" 
-                        src={property.propertyImages[currentImageIndex]?.link || '/assets/apartment-city-center.jpg'} 
+                        src={propertyImages[currentImageIndex] || '/assets/apartment-city-center.jpg'} 
                         onError={(e) => { e.currentTarget.src = '/assets/apartment-city-center.jpg'; }} 
                         sx={{ width: '100%', height: 'auto', borderRadius: '8px' }} 
                     />
                   </Box>
+                ) : (
+                  <Box component="img" 
+                      src='/assets/apartment-city-center.jpg'
+                      sx={{ width: '100%', height: 'auto', borderRadius: '8px' }} 
+                  />
                 )}
               </Grid>
-              <Grid xs={12} md={6}>
+              <Grid item xs={12} md={6}>
                 <Stack spacing={2}>
                   <Typography variant="body1">{property.description}</Typography>
                   <Typography variant="h6">{property.price} € par voyageur</Typography>
@@ -148,7 +200,7 @@ export function Included(): React.JSX.Element {
                     sx={{ mb: 2 }}
                   />
                   <Typography variant="h6">
-                    Total: {calculateTotalAmount()} €
+                    Total: {totalAmount !== null && totalAmount > 0 ? totalAmount + ' €' : 'N/A'}
                   </Typography>
                   <Button variant="contained" color="secondary" onClick={handleReserveClick}>
                     Réserver
@@ -158,27 +210,35 @@ export function Included(): React.JSX.Element {
             </Grid>
             <Stack spacing={2}>
               <Typography variant="h5">Description</Typography>
-              <Typography variant="body1">{property.longDescription}</Typography>
+              <Typography variant="body1">{property.description}</Typography>
             </Stack>
             <Stack spacing={2}>
               <Typography variant="h5">Équipements inclus</Typography>
               <Grid container spacing={2}>
-                {property.amenities?.map((amenity, index) => (
-                  <Grid item xs={12} sm={6} key={index}>
-                    <Typography variant="body1">{amenity}</Typography>
-                  </Grid>
-                ))}
+                {property.facilities && property.facilities.length > 0 ? (
+                  property.facilities.map((facility, index) => (
+                    <Grid item xs={12} sm={6} key={index}>
+                      <Typography variant="body1">{facility.name}</Typography>
+                    </Grid>
+                  ))
+                ) : (
+                  <Typography variant="body1">Aucun équipement inclus.</Typography>
+                )}
               </Grid>
             </Stack>
             <Typography variant="h5">Où se situe le logement</Typography>
-            <Typography variant="body1">{property.location?.address}</Typography>
+            <Typography variant="body1">{property.line1}, {property.city}, {property.state}, {property.country}, {property.zipCode}</Typography>
             <Box sx={{ height: '400px', mt: 4 }}>
               <LoadScript googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}>
-                <GoogleMap
-                  mapContainerStyle={{ width: '100%', height: '100%' }}
-                  center={{ lat: property.location?.lat, lng: property.location?.lng }}
-                  zoom={15}
-                />
+                {mapCenter && (
+                  <GoogleMap
+                    mapContainerStyle={{ width: '100%', height: '100%' }}
+                    center={mapCenter}
+                    zoom={15}
+                  >
+                    <Marker position={mapCenter} /> {/* Add Marker */}
+                  </GoogleMap>
+                )}
               </LoadScript>
             </Box>
           </Stack>
