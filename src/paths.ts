@@ -26,6 +26,12 @@ export const paths = {
       security: '/dashboard/settings/security',
       team: '/dashboard/settings/team',
     },
+    bookings: {
+      list: '/dashboard/bookings',
+      create: '/dashboard/bookings/create',
+      preview: (bookingId: string) => `/dashboard/bookings?previewId=${bookingId}`,
+      details: (bookingId: string) => `/dashboard/bookings/${bookingId}`,
+    },
     academy: { browse: '/dashboard/academy', details: (courseId: string) => `/dashboard/academy/courses/${courseId}` },
     analytics: '/dashboard/analytics',
     blank: '/dashboard/blank',

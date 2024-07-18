@@ -32,6 +32,7 @@ import { BuildingApartment as BuildingApartmentIcon } from '@phosphor-icons/reac
 import { Briefcase as BriefcaseIcon } from '@phosphor-icons/react/dist/ssr/Briefcase';
 import { HardHat as HardHat } from '@phosphor-icons/react/dist/ssr/HardHat';
 
+
 export const icons = {
   'address-book': AddressBookIcon,
   'align-left': AlignLeftIcon,
@@ -65,6 +66,7 @@ export const icons = {
   briefcase: BriefcaseIcon,
   'building-apartment': BuildingApartmentIcon,
   'hardHat': HardHat,
+  'calendar': CalendarCheckIcon,
 
 
 } as Record<string, Icon>;

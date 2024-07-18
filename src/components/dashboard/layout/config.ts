@@ -54,9 +54,9 @@ export const layoutConfig = {
           icon: 'hardHat',
         },
         {
-          key: 'calendar',
-          title: 'Calendar',
-          href: paths.dashboard.calendar,
+          key: 'bookings',
+          title: 'Bookings',
+          href: paths.dashboard.bookings.list,
           icon: 'calendar',
         },
         {

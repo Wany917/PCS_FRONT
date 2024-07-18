@@ -267,6 +267,9 @@
     "editProduct": "Editar producto",
     "properties": "Propiedades",
     "stock": "Inventario",
-    "noProductsFound": "No se encontraron productos"
-  
+    "noProductsFound": "No se encontraron productos",
+    "bookings": "Reservas",
+    "addBooking": "Añadir reserva",
+    "createBooking": "Crear reserva",
+    "bookingInformation": "Información de la reserva"
 }

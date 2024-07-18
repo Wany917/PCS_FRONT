@@ -242,6 +242,9 @@
     "properties": "Eigenschaften",
     "in": "in",
     "stock": "Lager",
-    "noProductsFound": "Keine Produkte gefunden"
-  
+    "noProductsFound": "Keine Produkte gefunden",
+    "bookings": "Buchungen",
+    "addBooking": "Buchung hinzufügen",
+    "createBooking": "Buchung erstellen",
+    "bookingInformation": "Buchungsinformationen"
 }

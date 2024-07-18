@@ -267,5 +267,9 @@
   "editProduct": "Edit product",
   "properties": "Properties",
   "stock": "Stock",
-  "noProductsFound": "No products found"
+  "noProductsFound": "No products found",
+  "bookings": "Bookings",
+  "addBooking": "Add Booking",
+  "createBooking": "Create Booking",
+  "bookingInformation": "Booking Information"
 }
