@@ -1,5 +1,7 @@
+'use client';
+
 import * as React from 'react';
-import type { Metadata } from 'next';
+import { useParams } from 'next/navigation';
 import RouterLink from 'next/link';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -11,21 +13,21 @@ import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
 import { ArrowLeft as ArrowLeftIcon } from '@phosphor-icons/react/dist/ssr/ArrowLeft';
 
-import { config } from '@/config';
 import { paths } from '@/paths';
 import { dayjs } from '@/lib/dayjs';
 import { DynamicLogo } from '@/components/core/logo';
 import { InvoicePDFLink } from '@/components/dashboard/invoice/invoice-pdf-link';
 import { LineItemsTable } from '@/components/dashboard/invoice/line-items-table';
-import type { LineItem } from '@/components/dashboard/invoice/line-items-table';
+import { useGetInvoice } from '@/api/invoices'; // Assurez-vous d'avoir ce hook
 
-export const metadata = { title: `Details | Invoices | Dashboard | ${config.site.name}` } satisfies Metadata;
+export default function InvoiceDetailPage(): React.JSX.Element {
+  const { invoiceId } = useParams();
+  const { invoice, isLoading, error } = useGetInvoice(invoiceId);
 
-const lineItems = [
-  { id: 'LI-001', name: 'Pro Subscription', quantity: 1, currency: 'USD', unitAmount: 14.99, totalAmount: 14.99 },
-] satisfies LineItem[];
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+  if (!invoice) return <div>Invoice not found</div>;
 
-export default function Page(): React.JSX.Element {
   return (
     <Box
       sx={{
@@ -51,16 +53,16 @@ export default function Page(): React.JSX.Element {
           </div>
           <Stack direction="row" spacing={3} sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <Stack spacing={1}>
-              <Typography variant="h4">INV-001</Typography>
+              <Typography variant="h4">{invoice.id}</Typography>
               <div>
-                <Chip color="warning" label="Pending" variant="soft" />
+                <Chip color="warning" label={invoice.status} variant="soft" />
               </div>
             </Stack>
             <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
-              <InvoicePDFLink invoice={undefined}>
+              <InvoicePDFLink invoice={invoice}>
                 <Button color="secondary">Download</Button>
               </InvoicePDFLink>
-              <Button component="a" href={paths.pdf.invoice('1')} target="_blank" variant="contained">
+              <Button component="a" href={paths.pdf.invoice(invoice.id.toString())} target="_blank" variant="contained">
                 Preview
               </Button>
             </Stack>
@@ -82,7 +84,7 @@ export default function Page(): React.JSX.Element {
                   <Typography variant="subtitle2">Number:</Typography>
                 </Box>
                 <div>
-                  <Typography variant="body2">INV-008</Typography>
+                  <Typography variant="body2">{invoice.id}</Typography>
                 </div>
               </Stack>
               <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
@@ -90,7 +92,7 @@ export default function Page(): React.JSX.Element {
                   <Typography variant="subtitle2">Due date:</Typography>
                 </Box>
                 <div>
-                  <Typography variant="body2">{dayjs().add(15, 'day').format('MMM D,YYYY')}</Typography>
+                  <Typography variant="body2">{dayjs(invoice.dueDate).format('MMM D, YYYY')}</Typography>
                 </div>
               </Stack>
               <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
@@ -98,30 +100,30 @@ export default function Page(): React.JSX.Element {
                   <Typography variant="subtitle2">Issue date:</Typography>
                 </Box>
                 <div>
-                  <Typography variant="body2">{dayjs().subtract(1, 'hour').format('MMM D, YYYY')}</Typography>
+                  <Typography variant="body2">{dayjs(invoice.createdAt).format('MMM D, YYYY')}</Typography>
                 </div>
               </Stack>
-              <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
-                <Box sx={{ flex: '0 1 150px' }}>
-                  <Typography variant="subtitle2">Issuer VAT No:</Typography>
-                </Box>
-                <Typography variant="body2">RO4675933</Typography>
-              </Stack>
+              {invoice.issuerSociety ? <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+                  <Box sx={{ flex: '0 1 150px' }}>
+                    <Typography variant="subtitle2">Issuer VAT No:</Typography>
+                  </Box>
+                  <Typography variant="body2">{invoice.issuerSociety.siren}</Typography>
+                </Stack> : null}
             </Stack>
             <Grid container spacing={3}>
               <Grid md={6} xs={12}>
                 <Stack spacing={1}>
-                  <Typography variant="subtitle1">Devias IO</Typography>
+                  <Typography variant="subtitle1">{invoice.issuerSociety?.name || 'Issuer Company'}</Typography>
                   <Typography variant="body2">
-                    2674 Alfred Drive
+                    {invoice.issuerSociety?.line1}
                     <br />
-                    Brooklyn, New York, United States
+                    {invoice.issuerSociety?.city}, {invoice.issuerSociety?.state}, {invoice.issuerSociety?.country}
                     <br />
-                    11206
+                    {invoice.issuerSociety?.zipCode}
                     <br />
-                    accounts@devias.io
+                    {invoice.issuerUser?.email}
                     <br />
-                    (+1) 757 737 1980
+                    {invoice.issuerUser?.phoneNumber}
                   </Typography>
                 </Stack>
               </Grid>
@@ -129,30 +131,28 @@ export default function Page(): React.JSX.Element {
                 <Stack spacing={1}>
                   <Typography variant="subtitle1">Billed to</Typography>
                   <Typography variant="body2">
-                    Miron Vitold
+                    {invoice.user?.firstname} {invoice.user?.lastname}
                     <br />
-                    Acme Inc.
+                    {invoice.user?.line1}
                     <br />
-                    1721 Bartlett Avenue
+                    {invoice.user?.city}, {invoice.user?.state}, {invoice.user?.country}
                     <br />
-                    Southfield, Michigan, United States
+                    {invoice.user?.zipCode}
                     <br />
-                    48034
-                    <br />
-                    RO8795621
+                    {invoice.user?.email}
                   </Typography>
                 </Stack>
               </Grid>
             </Grid>
             <div>
               <Typography variant="h5">
-                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(19.99)} due{' '}
-                {dayjs().add(15, 'day').format('MMM D, YYYY')}
+                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(invoice.amount)} due{' '}
+                {dayjs(invoice.dueDate).format('MMM D, YYYY')}
               </Typography>
             </div>
             <Stack spacing={2}>
               <Card sx={{ borderRadius: 1, overflowX: 'auto' }} variant="outlined">
-                <LineItemsTable rows={lineItems} />
+                <LineItemsTable rows={invoice.items} />
               </Card>
               <Stack spacing={2}>
                 <Stack direction="row" spacing={2} sx={{ alignItems: 'center', justifyContent: 'flex-end' }}>
@@ -161,17 +161,7 @@ export default function Page(): React.JSX.Element {
                   </Box>
                   <Box sx={{ flex: '0 1 100px', textAlign: 'right' }}>
                     <Typography>
-                      {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(14.99)}
-                    </Typography>
-                  </Box>
-                </Stack>
-                <Stack direction="row" spacing={2} sx={{ alignItems: 'center', justifyContent: 'flex-end' }}>
-                  <Box sx={{ flex: '0 1 150px' }}>
-                    <Typography>Tax</Typography>
-                  </Box>
-                  <Box sx={{ flex: '0 1 100px', textAlign: 'right' }}>
-                    <Typography>
-                      {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(5)}
+                      {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(invoice.amount)}
                     </Typography>
                   </Box>
                 </Stack>
@@ -181,19 +171,18 @@ export default function Page(): React.JSX.Element {
                   </Box>
                   <Box sx={{ flex: '0 1 100px', textAlign: 'right' }}>
                     <Typography variant="h6">
-                      {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(19.99)}
+                      {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(invoice.amount)}
                     </Typography>
                   </Box>
                 </Stack>
               </Stack>
             </Stack>
-            <Stack spacing={1}>
-              <Typography variant="h6">Notes</Typography>
-              <Typography color="text.secondary" variant="body2">
-                Please make sure you have the right bank registration number as I had issues before and make sure you
-                cover transfer expenses.
-              </Typography>
-            </Stack>
+            {invoice.notes ? <Stack spacing={1}>
+                <Typography variant="h6">Notes</Typography>
+                <Typography color="text.secondary" variant="body2">
+                  {invoice.notes}
+                </Typography>
+              </Stack> : null}
           </Stack>
         </Card>
       </Stack>

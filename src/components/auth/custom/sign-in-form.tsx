@@ -21,24 +21,11 @@ import { Controller, useForm } from 'react-hook-form';
 import { z as zod } from 'zod';
 
 import { paths } from '@/paths';
-import { authClient } from '@/lib/auth/custom/client';
 import { useUser } from '@/hooks/use-user';
 import { DynamicLogo } from '@/components/core/logo';
 import { toast } from '@/components/core/toaster';
 import { logger } from '@/lib/default-logger';
-import axios, { endpoints } from '@/lib/axios';
-import { setSession } from '@/lib/jwt';
-
-interface OAuthProvider {
-  id: 'google' | 'discord';
-  name: string;
-  logo: string;
-}
-
-const oAuthProviders = [
-  { id: 'google', name: 'Google', logo: '/assets/logo-google.svg' },
-  { id: 'discord', name: 'Discord', logo: '/assets/logo-discord.svg' },
-] satisfies OAuthProvider[];
+import axiosInstance, { endpoints } from '@/lib/axios';
 
 const schema = zod.object({
   email: zod.string().min(1, { message: 'Email is required' }).email(),
@@ -51,11 +38,8 @@ const defaultValues = { email: '', password: '' } satisfies Values;
 
 export function SignInForm(): React.JSX.Element {
   const router = useRouter();
-
   const { checkSession } = useUser();
-
-  const [showPassword, setShowPassword] = React.useState<boolean>();
-
+  const [showPassword, setShowPassword] = React.useState<boolean>(false);
   const [isPending, setIsPending] = React.useState<boolean>(false);
 
   const {
@@ -65,47 +49,24 @@ export function SignInForm(): React.JSX.Element {
     formState: { errors },
   } = useForm<Values>({ defaultValues, resolver: zodResolver(schema) });
 
-  const onAuth = React.useCallback(async (providerId: OAuthProvider['id']): Promise<void> => {
-    setIsPending(true);
-
-    const { error } = await authClient.signInWithOAuth({ provider: providerId });
-
-    if (error) {
-      setIsPending(false);
-      toast.error(error);
-      return;
-    }
-
-    setIsPending(false);
-
-    // Redirect to OAuth provider
-  }, []);
-
   const onSubmit = React.useCallback(
     async (values: Values): Promise<void> => {
       setIsPending(true);
       try {
-        const response = await axios.post(endpoints.auth.login, values);
-
-        if (response.data?.accessToken as string) {
-          setSession(response.data.accessToken);
+        const response = await axiosInstance.post(endpoints.auth.login, values, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        if (response.data?.accessToken) {
+          sessionStorage.setItem('accessToken', response.data.accessToken);
         }
-
-        if (response.data?.error) {
-          setError('root', { type: 'server', message: response.data.error });
-          setIsPending(false);
-          return;
-        }
-
-        // Refresh the auth state
-        await checkSession?.();
-
-        // UserProvider, for this case, will not refresh the router
-        // After refresh, GuestGuard will handle the redirect
-        router.refresh();
+        await checkSession();
+        router.push(paths.dashboard.properties.list);
       } catch (err) {
         logger.error(err);
-        setError('root', { type: 'server', message: 'error' });
+        setError('root', { type: 'server', message: 'Invalid credentials' });
+      } finally {
         setIsPending(false);
       }
     },
@@ -129,26 +90,6 @@ export function SignInForm(): React.JSX.Element {
         </Typography>
       </Stack>
       <Stack spacing={3}>
-        <Stack spacing={2}>
-          {oAuthProviders.map(
-            (provider): React.JSX.Element => (
-              <Button
-                color="secondary"
-                disabled={isPending}
-                endIcon={<Box alt="" component="img" height={24} src={provider.logo} width={24} />}
-                key={provider.id}
-                onClick={(): void => {
-                  onAuth(provider.id).catch(() => {
-                    // noop
-                  });
-                }}
-                variant="outlined"
-              >
-                Continue with {provider.name}
-              </Button>
-            )
-          )}
-        </Stack>
         <Divider>or</Divider>
         <Stack spacing={2}>
           <form onSubmit={handleSubmit(onSubmit)}>

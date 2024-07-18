@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import RouterLink from 'next/link';
+import { useRouter } from 'next/navigation';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import IconButton from '@mui/material/IconButton';
@@ -13,7 +14,6 @@ import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
 import { Image as ImageIcon } from '@phosphor-icons/react/dist/ssr/Image';
 import { Trash as TrashIcon } from '@phosphor-icons/react/dist/ssr/Trash';
-
 import { paths } from '@/paths';
 import type { ColumnDef } from '@/components/core/data-table';
 import { DataTable } from '@/components/core/data-table';
@@ -24,13 +24,12 @@ export interface Property {
   title: string;
   image: string | null;
   category: string;
-  type: string;
-  quantity: number;
-  currency?: string;
-  price: string;
-  sku: string;
-  status: 'published' | 'draft';
-  createdAt: Date;
+  propertyType: string;
+  bedrooms: number;
+  bathrooms: number;
+  beds: number;
+  price: number;
+  createdAt: string;
 }
 
 export interface PropertiesTableProps {
@@ -40,6 +39,11 @@ export interface PropertiesTableProps {
 
 export function PropertiesTable({ rows = [], onDelete }: PropertiesTableProps): React.JSX.Element {
   const { t } = useTranslation();
+  const router = useRouter();
+
+  const handlePreview = (id: number) => {
+    router.push(`${paths.dashboard.properties.list}?previewId=${id}`);
+  };
 
   const columns: ColumnDef<Property>[] = [
     {
@@ -79,8 +83,8 @@ export function PropertiesTable({ rows = [], onDelete }: PropertiesTableProps): 
           <div>
             <Link
               color="text.primary"
-              component={RouterLink}
-              href={paths.dashboard.properties.preview(row.id)}
+              component="button"
+              onClick={() => { handlePreview(row.id); }}
               sx={{ whiteSpace: 'nowrap' }}
               variant="subtitle2"
             >
@@ -95,11 +99,13 @@ export function PropertiesTable({ rows = [], onDelete }: PropertiesTableProps): 
       name: t('name'),
       width: '300px',
     },
-    { field: 'sku', name: 'SKU', width: '150px' },
-    { field: 'quantity', name: t('stock'), width: '100px' },
+    { field: 'propertyType', name: 'Property Type', width: '150px' },
+    { field: 'bedrooms', name: t('bedrooms'), width: '100px' },
+    { field: 'bathrooms', name: t('bathrooms'), width: '100px' },
+    { field: 'beds', name: t('beds'), width: '100px' },
     {
       formatter(row) {
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency: row.currency || 'USD' }).format(parseFloat(row.price));
+        return `${row.price} USD`;
       },
       name: t('price'),
       width: '150px',
@@ -123,7 +129,7 @@ export function PropertiesTable({ rows = [], onDelete }: PropertiesTableProps): 
     {
       formatter: (row): React.JSX.Element => (
         <Stack direction="row" spacing={1}>
-          <IconButton component={RouterLink} href={paths.dashboard.properties.preview(row.id)}>
+          <IconButton onClick={() => { handlePreview(row.id); }}>
             <EyeIcon />
           </IconButton>
           <IconButton onClick={() => { onDelete(row.id); }}>

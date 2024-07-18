@@ -16,14 +16,14 @@ import Typography from '@mui/material/Typography';
 import { CheckCircle as CheckCircleIcon } from '@phosphor-icons/react/dist/ssr/CheckCircle';
 import { PencilSimple as PencilSimpleIcon } from '@phosphor-icons/react/dist/ssr/PencilSimple';
 import { X as XIcon } from '@phosphor-icons/react/dist/ssr/X';
-
+import { useTranslation } from 'react-i18next';
+import { useGetProperty } from '@/api/properties';
 import { paths } from '@/paths';
 import { dayjs } from '@/lib/dayjs';
 import type { ColumnDef } from '@/components/core/data-table';
 import { DataTable } from '@/components/core/data-table';
 import { PropertyItem } from '@/components/core/property-item';
 import { PropertyList } from '@/components/core/property-list';
-import { useTranslation } from 'react-i18next';
 
 interface Image {
   id: string;
@@ -65,30 +65,28 @@ const imageColumns = [
   },
 ] satisfies ColumnDef<Image>[];
 
-const images = [
-  { id: 'IMG-001', url: '/assets/product-1.png', fileName: 'product-1.png', primary: true },
-] satisfies Image[];
-
-export interface ProductModalProps {
+export interface PropertyModalProps {
   open: boolean;
-  productId?: string;
+  propertyId: number;
+  onClose: () => void;
 }
 
-export function PropertyModal({ open }: ProductModalProps): React.JSX.Element | null {
+export function PropertyModal({ open, propertyId, onClose }: PropertyModalProps): React.JSX.Element | null {
   const { t } = useTranslation();
-  const router = useRouter();
+  const { property, isLoading } = useGetProperty(propertyId);
 
-  // This component should load the product from the API based on the productId prop.
-  // For the sake of simplicity, we are just using a static product object.
+  if (isLoading) {
+    return null;
+  }
 
-  const handleClose = React.useCallback(() => {
-    router.push(paths.dashboard.properties.list);
-  }, [router]);
+  if (!property) {
+    return <div>{t('propertyNotFound')}</div>;
+  }
 
   return (
     <Dialog
       maxWidth="sm"
-      onClose={handleClose}
+      onClose={onClose}
       open={open}
       sx={{
         '& .MuiDialog-container': { justifyContent: 'flex-end' },
@@ -97,8 +95,8 @@ export function PropertyModal({ open }: ProductModalProps): React.JSX.Element | 
     >
       <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, minHeight: 0 }}>
         <Stack direction="row" sx={{ alignItems: 'center', flex: '0 0 auto', justifyContent: 'space-between' }}>
-          <Typography variant="h6">PRD-001</Typography>
-          <IconButton onClick={handleClose}>
+          <Typography variant="h6">{property.title}</Typography>
+          <IconButton onClick={onClose}>
             <XIcon />
           </IconButton>
         </Stack>
@@ -109,7 +107,7 @@ export function PropertyModal({ open }: ProductModalProps): React.JSX.Element | 
               <Button
                 color="secondary"
                 component={RouterLink}
-                href={paths.dashboard.properties.details('1')}
+                href={paths.dashboard.properties.details(property.id)}
                 startIcon={<PencilSimpleIcon />}
               >
                 {t('edit')}
@@ -117,67 +115,25 @@ export function PropertyModal({ open }: ProductModalProps): React.JSX.Element | 
             </Stack>
             <Card sx={{ borderRadius: 1 }} variant="outlined">
               <PropertyList divider={<Divider />} sx={{ '--PropertyItem-padding': '12px 24px' }}>
-                {(
-                  [
-                    { key: t('name'), value: 'Erbology Aloe Vera' },
-                    { key: t('category'), value: t('healthcare') },
-                    { key: t('type'), value: t('physical') },
-                    { key: t('tags'), value: 'Natural, Eco-Friendly, Vegan' },
-                    {
-                      key: t('price'),
-                      value: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(24),
-                    },
-                    {
-                      key: t('status'),
-                      value: (
-                        <Chip
-                          icon={<CheckCircleIcon color="var(--mui-palette-success-main)" weight="fill" />}
-                          label={t('published')}
-                          size="small"
-                          variant="outlined"
-                        />
-                      ),
-                    },
-                    {
-                      key: t('createdAt'),
-                      value: dayjs().subtract(3, 'hour').subtract(5, 'day').format('MMMM D, YYYY hh:mm A'),
-                    },
-                  ] satisfies { key: string; value: React.ReactNode }[]
-                ).map(
-                  (item): React.JSX.Element => (
-                    <PropertyItem key={item.key} name={item.key} value={item.value} />
-                  )
-                )}
+                {[
+                  { key: t('title'), value: property.title },
+                  { key: t('propertyType'), value: property.propertyType },
+                  { key: t('city'), value: property.city },
+                  { key: t('price'), value: `${property.price} USD` },
+                  { key: t('status'), value: <Chip icon={<CheckCircleIcon color="var(--mui-palette-success-main)" weight="fill" />} label={t('published')} size="small" variant="outlined" /> },
+                  { key: t('createdAt'), value: dayjs(property.createdAt).format('MMMM D, YYYY hh:mm A') },
+                  { key: t('updatedAt'), value: dayjs(property.updatedAt).format('MMMM D, YYYY hh:mm A') },
+                ].map((item) => (
+                  <PropertyItem key={item.key} name={item.key} value={item.value} />
+                ))}
               </PropertyList>
             </Card>
             <Stack spacing={3}>
               <Typography variant="h6">{t('images')}</Typography>
               <Card sx={{ borderRadius: 1 }} variant="outlined">
                 <Box sx={{ overflowX: 'auto' }}>
-                  <DataTable<Image> columns={imageColumns} rows={images} />
+                  <DataTable<Image> columns={imageColumns} rows={property.propertyImages} />
                 </Box>
-              </Card>
-            </Stack>
-            <Stack spacing={3}>
-              <Typography variant="h6">{t('stockInventory')}</Typography>
-              <Card sx={{ borderRadius: 1 }} variant="outlined">
-                <PropertyList divider={<Divider />} sx={{ '--PropertyItem-padding': '12px 24px' }}>
-                  {(
-                    [
-                      { key: 'SKU', value: '401_1BBXBK' },
-                      { key: t('barcode'), value: '' },
-                      { key: t('quantity'), value: 10 },
-                      { key: t('height'), value: '25 cm' },
-                      { key: t('width'), value: '15 cm' },
-                      { key: t('length'), value: '5 cm' },
-                      { key: t('weight'), value: '0.25 kg' },
-                    ] satisfies { key: string; value: React.ReactNode }[]
-                  ).map(
-                    (item): React.JSX.Element => (
-                      <PropertyItem key={item.key} name={item.key} value={item.value} />
-                    )
-                  )}
-                </PropertyList>
               </Card>
             </Stack>
           </Stack>

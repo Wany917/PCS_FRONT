@@ -1,27 +1,47 @@
 import axios from 'axios';
-// ----------------------------------------------------------------------
 
-const axiosInstance = axios.create({ baseURL: 'http://localhost:3333' });
+// Créer une instance axios pour les requêtes API
+const axiosInstance = axios.create({
+  baseURL: 'http://localhost:3333',
+});
 
+// Ajouter un intercepteur pour inclure le token d'authentification dans les en-têtes des requêtes
+axiosInstance.interceptors.request.use(
+  async (config) => {
+    const token = sessionStorage.getItem('accessToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      delete config.headers.Authorization;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Ajouter un intercepteur pour gérer les erreurs de réponse
 axiosInstance.interceptors.response.use(
-  (res) => res,
-  (error) => Promise.reject((error.response?.data) || 'Something went wrong')
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      sessionStorage.removeItem('accessToken');
+    }
+    return Promise.reject((error.response?.data) || 'Something went wrong');
+  }
 );
 
 export default axiosInstance;
 
-// ----------------------------------------------------------------------
-
+// Fonction fetcher pour SWR
 export const fetcher = async (args: any) => {
   const [url, config] = Array.isArray(args) ? args : [args];
-
   const res = await axiosInstance.get(url, { ...config });
-
   return res.data;
 };
 
-// ----------------------------------------------------------------------
-
+// Définir les endpoints API
 export const endpoints = {
   auth: {
     me: '/auth/me',
@@ -35,7 +55,7 @@ export const endpoints = {
     put: (userId: number) => `/users/${userId}`,
     avatar: {
       get: (avatarId: string) => `http://localhost:3333/uploads/avatar/${avatarId}`,
-      put : (userId: number) => `/users/${userId}/avatar/`,
+      put: (userId: number) => `/users/${userId}/avatar/`,
     },
     delete: (userId: number) => `/users/${userId}`,
   },
@@ -46,7 +66,7 @@ export const endpoints = {
     put: (societyId: number) => `/societies/${societyId}`,
     avatar: {
       get: (avatarId: string) => `http://localhost:3333/uploads/avatar/${avatarId}`,
-      put : (societyId: number) => `/societies/${societyId}/avatar/`,
+      put: (societyId: number) => `/societies/${societyId}/avatar/`,
     },
   },
   properties: {
@@ -54,7 +74,7 @@ export const endpoints = {
     get: (id: number) => `/properties/${id}`,
     create: '/properties',
     update: (id: number) => `/properties/${id}`,
-    delete: (id: number) => `/properties/${id}`
+    delete: (id: number) => `/properties/${id}`,
   },
   orders: {
     get: (orderId: number) => `/orders/${orderId}`,

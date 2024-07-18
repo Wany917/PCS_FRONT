@@ -1,5 +1,6 @@
+'use client';
 import useSWR, { mutate } from 'swr';
-import { useMemo } from 'react';
+import { useEffect,useState,useMemo } from 'react';
 import axios from 'axios';
 import { fetcher, endpoints } from '../lib/axios';
 
@@ -85,10 +86,40 @@ export function useGetProperties(filters: PropertyFilters = {}) {
   return memoizedValue;
 }
 
+export function useGetProperty(id: number) {
+  const [property, setProperty] = useState<Property | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    const fetchProperty = async () => {
+      try {
+        const response = await axios.get(endpoints.properties.get(id));
+        if (response.data?.data && response.data.data.length > 0) {
+          setProperty(response.data.data[0]);
+        } else {
+          setProperty(null);
+        }
+      } catch (err) {
+        setError(err as Error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchProperty();
+    }
+  }, [id]);
+
+  return { property, isLoading, error };
+}
+
+
 export async function createProperty(propertyData: Property): Promise<Property> {
   try {
     const response = await axios.post<Property>(endpoints.properties.create, propertyData);
-    mutate(endpoints.properties.list);
+    await mutate(endpoints.properties.list);
     return response.data;
   } catch (error) {
     console.error('Failed to create property', error);

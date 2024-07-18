@@ -1,40 +1,10 @@
 'use client';
 
 import * as React from 'react';
-
 import type { User } from '@/types/user';
 import { logger } from '@/lib/default-logger';
-
 import type { UserContextValue } from '../types';
-import axios, { endpoints } from '@/lib/axios';
-import axiosInstance from '@/lib/axios';
-
-export const instance = axios.create({
-  baseURL: process.env.HOST_API_URL,
-
-});
-
-axiosInstance.interceptors.request.use( async (config) => {
-  const token = sessionStorage.getItem('accessToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  } else {
-    delete config.headers.Authorization;
-  }
-  return config;
-},
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-axiosInstance.interceptors.response.use((response) => response, (error) => {
-  if (error.response?.status === 401) {
-    sessionStorage.removeItem('accessToken');
-  }
-  return Promise.reject(error);
-});
-
+import axiosInstance, { endpoints } from '@/lib/axios';
 
 export const UserContext = React.createContext<UserContextValue | undefined>(undefined);
 
@@ -51,14 +21,12 @@ export function UserProvider({ children }: UserProviderProps): React.JSX.Element
 
   const checkSession = React.useCallback(async (): Promise<void> => {
     try {
-      const response = await axios.get(endpoints.auth.me);
-
+      const response = await axiosInstance.get(endpoints.auth.me);
       if (response.data?.error) {
         logger.error(response.data.error.message);
         setState((prev) => ({ ...prev, user: null, error: null, isLoading: false }));
         return;
       }
-
       setState((prev) => ({ ...prev, user: response.data ?? null, error: null, isLoading: false }));
     } catch (err) {
       logger.error(err);
@@ -71,8 +39,7 @@ export function UserProvider({ children }: UserProviderProps): React.JSX.Element
       logger.error(err);
       // noop
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Expected
-  }, []);
+  }, [checkSession]);
 
   return <UserContext.Provider value={{ ...state, checkSession }}>{children}</UserContext.Provider>;
 }
