@@ -9,62 +9,29 @@ import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardActions from '@mui/material/CardActions';
 import CardContent from '@mui/material/CardContent';
-import Checkbox from '@mui/material/Checkbox';
 import Divider from '@mui/material/Divider';
 import FormControl from '@mui/material/FormControl';
-import FormControlLabel from '@mui/material/FormControlLabel';
 import FormHelperText from '@mui/material/FormHelperText';
-import IconButton from '@mui/material/IconButton';
-import InputAdornment from '@mui/material/InputAdornment';
 import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Select from '@mui/material/Select';
 import Stack from '@mui/material/Stack';
-import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
 import { Image as ImageIcon } from '@phosphor-icons/react/dist/ssr/Image';
-import { Info as InfoIcon } from '@phosphor-icons/react/dist/ssr/Info';
 import { Trash as TrashIcon } from '@phosphor-icons/react/dist/ssr/Trash';
-import type { EditorEvents } from '@tiptap/react';
 import { Controller, useForm } from 'react-hook-form';
 import { z as zod } from 'zod';
 
 import { paths } from '@/paths';
 import { logger } from '@/lib/default-logger';
-import type { ColumnDef } from '@/components/core/data-table';
-import { DataTable } from '@/components/core/data-table';
-import type { File } from '@/components/core/file-dropzone';
-import { FileDropzone } from '@/components/core/file-dropzone';
 import { Option } from '@/components/core/option';
+import { DataTable } from '@/components/core/data-table';
+import { FileDropzone } from '@/components/core/file-dropzone';
 import { TextEditor } from '@/components/core/text-editor/text-editor';
 import { toast } from '@/components/core/toaster';
 import { useTranslation } from 'react-i18next';
-
-export interface Image {
-  id: string;
-  url: string;
-  fileName: string;
-}
-
-export interface Property {
-  id: number;
-  title: string;
-  propertyType: string;
-  description: string;
-  country: string;
-  state: string;
-  city: string;
-  zipCode: string;
-  line1: string;
-  price: number;
-  images: Image[];
-  bedrooms: number;
-  bathrooms: number;
-  beds: number;
-  userId: number;
-  isPrivate: boolean;
-}
+import axios, { endpoints } from '@/lib/axios';
 
 function fileToBase64(file: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -130,17 +97,15 @@ const schema = zod.object({
   zipCode: zod.string().min(1, 'Zip code is required').max(255),
   line1: zod.string().min(1, 'Address is required').max(255),
   price: zod.number().min(0, 'Price must be greater than or equal to 0'),
-  images: zod.array(zod.object({ id: zod.string(), url: zod.string(), fileName: zod.string() })),
   bedrooms: zod.number().min(1, 'Bedrooms must be greater than or equal to 1').max(8),
   bathrooms: zod.number().min(1, 'Bathrooms must be greater than or equal to 1').max(8),
   beds: zod.number().min(1, 'Beds must be greater than or equal to 1').max(8),
-  userId: zod.number().positive().int().min(1, 'Owner is required'),
-  isPrivate: zod.boolean().optional(),
+  images: zod.array(zod.object({ id: zod.string(), url: zod.string(), fileName: zod.string() })),
 });
 
 type Values = zod.infer<typeof schema>;
 
-function getDefaultValues(property: Property): Values {
+function getDefaultValues(property) {
   return {
     title: property.title,
     propertyType: property.propertyType,
@@ -155,16 +120,10 @@ function getDefaultValues(property: Property): Values {
     bedrooms: property.bedrooms,
     bathrooms: property.bathrooms,
     beds: property.beds,
-    userId: property.userId,
-    isPrivate: property.isPrivate,
   };
 }
 
-export interface PropertyEditFormProps {
-  property: Property;
-}
-
-export function PropertyEditForm({ property }: PropertyEditFormProps): React.JSX.Element {
+export function PropertyEditForm({ property }) {
   const { t } = useTranslation();
   const router = useRouter();
 
@@ -175,45 +134,38 @@ export function PropertyEditForm({ property }: PropertyEditFormProps): React.JSX
     getValues,
     setValue,
     watch,
-  } = useForm<Values>({ defaultValues: getDefaultValues(property), resolver: zodResolver(schema) });
+  } = useForm({ defaultValues: getDefaultValues(property), resolver: zodResolver(schema) });
 
-  const onSubmit = React.useCallback(
-    async (values: Values): Promise<void> => {
-      try {
-        // Make API request
+  const onSubmit = async (values) => {
+    try {
+      const response = await axios.put(endpoints.properties.put(property.id), values);
+      if (response.data?.message) {
         toast.success(t('propertyUpdated'));
         router.push(paths.dashboard.properties.list);
-      } catch (err) {
-        logger.error(err);
-        toast.error(t('somethingWentWrong'));
       }
-    },
-    [router, t]
-  );
+    } catch (err) {
+      logger.error(err);
+      toast.error(t('somethingWentWrong'));
+    }
+  };
 
-  const handleImageDrop = React.useCallback(
-    async (files: File[]) => {
-      const images = await Promise.all(
-        files.map(async (file) => {
-          const url = await fileToBase64(file);
-          return { id: `IMG-${Date.now()}`, url, fileName: file.name };
-        })
-      );
+  const handleImageDrop = async (files) => {
+    const images = await Promise.all(
+      files.map(async (file) => {
+        const url = await fileToBase64(file);
+        return { id: `IMG-${Date.now()}`, url, fileName: file.name };
+      })
+    );
 
-      setValue('images', [...getValues('images'), ...images]);
-    },
-    [getValues, setValue]
-  );
+    setValue('images', [...getValues('images'), ...images]);
+  };
 
-  const handleImageRemove = React.useCallback(
-    (imageId: string) => {
-      setValue(
-        'images',
-        getValues('images').filter((image) => image.id !== imageId)
-      );
-    },
-    [getValues, setValue]
-  );
+  const handleImageRemove = (imageId) => {
+    setValue(
+      'images',
+      getValues('images').filter((image) => image.id !== imageId)
+    );
+  };
 
   const title = watch('title');
   const description = watch('description');
@@ -398,7 +350,7 @@ export function PropertyEditForm({ property }: PropertyEditFormProps): React.JSX
                         <Box sx={{ mt: '8px', '& .tiptap-container': { height: '400px' } }}>
                           <TextEditor
                             content={field.value ?? ''}
-                            onUpdate={({ editor }: EditorEvents['update']) => {
+                            onUpdate={({ editor }) => {
                               field.onChange(editor.getText());
                             }}
                             placeholder={t('writeSomething')}
@@ -412,7 +364,7 @@ export function PropertyEditForm({ property }: PropertyEditFormProps): React.JSX
                 <Stack spacing={3}>
                   <Typography variant="h6">{t('images')}</Typography>
                   <Card sx={{ borderRadius: 1 }} variant="outlined">
-                    <DataTable<Image> columns={getImageColumns({ onRemove: handleImageRemove })} rows={images} />
+                    <DataTable columns={getImageColumns({ onRemove: handleImageRemove })} rows={images} />
                     {images.length === 0 ? (
                       <Box sx={{ p: 1 }}>
                         <Typography align="center" color="text.secondary" variant="body2">

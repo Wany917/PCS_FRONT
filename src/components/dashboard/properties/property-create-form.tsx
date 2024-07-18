@@ -201,7 +201,7 @@ export function PropertyCreateForm(): React.JSX.Element {
         // Convertir les données en FormData
         const formData = new FormData();
         formData.append('title', values.title);
-        formData.append('description', 'TEST');
+        formData.append('description', values.description?.toString());
         formData.append('propertyType', values.propertyType);
         formData.append('country', values.country);
         formData.append('state', 'TEST');

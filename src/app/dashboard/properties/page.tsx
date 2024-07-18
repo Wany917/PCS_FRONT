@@ -76,7 +76,7 @@ export default function Page({ searchParams }: PageProps): React.JSX.Element {
           </Card>
         </Stack>
       </Box>
-      <PropertyModal open={Boolean(previewId)} />
+      <PropertyModal open={Boolean(previewId)} propertyId={previewId} />
     </React.Fragment>
   );
 }

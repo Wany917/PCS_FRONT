@@ -53,7 +53,7 @@ export const endpoints = {
     list: '/properties',
     get: (id: number) => `/properties/${id}`,
     create: '/properties',
-    update: (id: number) => `/properties/${id}`,
+    put: (id: number) => `/properties/${id}`,
     delete: (id: number) => `/properties/${id}`
   },
   orders: {
