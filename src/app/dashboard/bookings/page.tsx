@@ -5,30 +5,43 @@ import RouterLink from 'next/link';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
-import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import IconButton from '@mui/material/IconButton';
 import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
+import { PencilSimple as PencilSimpleIcon } from '@phosphor-icons/react/dist/ssr/PencilSimple';
+import { Trash as TrashIcon } from '@phosphor-icons/react/dist/ssr/Trash';
 
-import { CustomersFilters } from '@/components/dashboard/customer/customers-filters';
-import { CustomersPagination } from '@/components/dashboard/customer/customers-pagination';
-import { CustomersSelectionProvider } from '@/components/dashboard/customer/customers-selection-context';
-import { CustomersTable } from '@/components/dashboard/customer/customers-table';
-import { useGetUsers } from '@/api/users';
 import { paths } from '@/paths';
+import { useGetPropertyBookings, useDeletePropertyBooking } from '@/api/booking';
 import { useTranslation } from 'react-i18next';
 
 export default function Page({ searchParams }: { searchParams: any }): React.JSX.Element {
   const { t } = useTranslation();
-  const { users } = useGetUsers();
+  const { bookings, bookingsLoading, bookingsError, mutate } = useGetPropertyBookings(searchParams.propertyId);
+  const deleteBookingMutation = useDeletePropertyBooking(searchParams.propertyId);
 
-  const filteredCustomers = applyFilters(users, searchParams);
-  const tabs = [
-    { label: t('all'), value: '', count: users.length },
-    { label: t('active'), value: 'active', count: applyFilters(users, { status: 'active' }).length },
-    { label: t('pending'), value: 'pending', count: applyFilters(users, { status: 'pending' }).length },
-    { label: t('blocked'), value: 'blocked', count: applyFilters(users, { status: 'blocked' }).length },
-  ];
+  const handleDeleteBooking = async (bookingId: number) => {
+    try {
+      await deleteBookingMutation(bookingId);
+      mutate();
+    } catch (error) {
+      console.error('Failed to delete booking:', error);
+    }
+  };
+
+  if (bookingsLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (bookingsError) {
+    return <div>Error loading bookings.</div>;
+  }
 
   return (
     <Box
@@ -45,54 +58,55 @@ export default function Page({ searchParams }: { searchParams: any }): React.JSX
             <Typography variant="h4">{t('bookings')}</Typography>
           </Box>
           <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <Button component={RouterLink} href={paths.dashboard.bookings.create} startIcon={<PlusIcon />} variant="contained">
+            <Button 
+              component={RouterLink} 
+              href={paths.dashboard.bookings.create} 
+              startIcon={<PlusIcon />} 
+              variant="contained"
+            >
               {t('addBooking')}
             </Button>
           </Box>
         </Stack>
-        <CustomersSelectionProvider customers={filteredCustomers}>
-          <Card>
-            <CustomersFilters filters={searchParams} tabs={tabs} />
-            <Divider />
-            <Box sx={{ overflowX: 'auto' }}>
-              <CustomersTable rows={filteredCustomers} />
-            </Box>
-            <Divider />
-            <CustomersPagination count={filteredCustomers.length} page={0} />
-          </Card>
-        </CustomersSelectionProvider>
+        <Card>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>{t('id')}</TableCell>
+                <TableCell>{t('propertyName')}</TableCell>
+                <TableCell>{t('startDate')}</TableCell>
+                <TableCell>{t('endDate')}</TableCell>
+                <TableCell>{t('guests')}</TableCell>
+                <TableCell>{t('totalPrice')}</TableCell>
+                <TableCell>{t('actions')}</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {bookings.map((booking) => (
+                <TableRow key={booking.id}>
+                  <TableCell>{booking.id}</TableCell>
+                  <TableCell>{booking.propertyName}</TableCell>
+                  <TableCell>{new Date(booking.startDate).toLocaleDateString()}</TableCell>
+                  <TableCell>{new Date(booking.endDate).toLocaleDateString()}</TableCell>
+                  <TableCell>{booking.guests}</TableCell>
+                  <TableCell>${booking.totalPrice}</TableCell>
+                  <TableCell>
+                    <IconButton 
+                      component={RouterLink} 
+                      href={paths.dashboard.bookings.edit(booking.id)}
+                    >
+                      <PencilSimpleIcon />
+                    </IconButton>
+                    <IconButton onClick={() => handleDeleteBooking(booking.id)}>
+                      <TrashIcon />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
       </Stack>
     </Box>
   );
-}
-
-
-// Sorting and filtering has to be done on the server.
-
-function applySort(row: Customer[], sortDir: 'asc' | 'desc' | undefined): Customer[] {
-  return row.sort((a, b) => {
-    if (sortDir === 'asc') {
-      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-    }
-
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  });
-}
-
-function applyFilters(row: Customer[], { email, status }: Filters): Customer[] {
-  return row.filter((item) => {
-    if (email) {
-      if (!item.email?.toLowerCase().includes(email.toLowerCase())) {
-        return false;
-      }
-    }
-
-    if (status) {
-      if (item.status !== status) {
-        return false;
-      }
-    }
-
-    return true;
-  });
 }

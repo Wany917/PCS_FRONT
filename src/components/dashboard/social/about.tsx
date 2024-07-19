@@ -34,7 +34,7 @@ export function About(): React.JSX.Element {
                   <Typography noWrap variant="subtitle2">
                     Product Designer at{' '}
                     <Link color="text.primary" variant="subtitle2">
-                      Devias IO
+                    Paris Care Taker
                     </Link>
                   </Typography>
                 }
@@ -93,7 +93,7 @@ export function About(): React.JSX.Element {
                 disableTypography
                 primary={
                   <Typography noWrap variant="subtitle2">
-                    sofia@devias.io
+                   pcs@taker.fr
                   </Typography>
                 }
               />

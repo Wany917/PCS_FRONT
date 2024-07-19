@@ -1,8 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import type { Metadata } from 'next';
 import RouterLink from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
 import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -20,24 +20,28 @@ import { ArrowLeft as ArrowLeftIcon } from '@phosphor-icons/react/dist/ssr/Arrow
 import { CheckCircle as CheckCircleIcon } from '@phosphor-icons/react/dist/ssr/CheckCircle';
 import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import { Minus as MinusIcon } from '@phosphor-icons/react/dist/ssr/Minus';
-import { CreditCard as CreditCardIcon } from '@phosphor-icons/react/dist/ssr/CreditCard';
 import { House as HouseIcon } from '@phosphor-icons/react/dist/ssr/House';
 import { PencilSimple as PencilSimpleIcon } from '@phosphor-icons/react/dist/ssr/PencilSimple';
 import { ShieldWarning as ShieldWarningIcon } from '@phosphor-icons/react/dist/ssr/ShieldWarning';
 import { User as UserIcon } from '@phosphor-icons/react/dist/ssr/User';
 import { z as zod } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { paths } from '@/paths';
+import { Controller, useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
+import { mutate } from 'swr';
 import { dayjs } from '@/lib/dayjs';
+
+import { paths } from '@/paths';
 import { PropertyItem } from '@/components/core/property-item';
 import { PropertyList } from '@/components/core/property-list';
 import { Notifications } from '@/components/dashboard/customer/notifications';
-import Payments, { Payment } from '@/components/dashboard/customer/payments';
-import type { Address } from '@/components/dashboard/customer/shipping-address';
+import Payments from '@/components/dashboard/customer/payments';
 import { ShippingAddress } from '@/components/dashboard/customer/shipping-address';
 import { useGetUser } from '@/api/users';
-import { useParams, useRouter } from 'next/navigation';
+import { useGetInvoices } from '@/api/invoices';
 import axios, { endpoints } from '@/lib/axios';
+import { logger } from '@/lib/default-logger';
+import { toast } from '@/components/core/toaster';
 import {
   CardActions,
   FormControl,
@@ -45,11 +49,6 @@ import {
   InputLabel,
   OutlinedInput,
 } from '@mui/material';
-import { Controller, useForm } from 'react-hook-form';
-import { logger } from '@/lib/default-logger';
-import { toast } from '@/components/core/toaster';
-import { mutate } from 'swr';
-import { useTranslation } from 'react-i18next';
 
 const customerSchema = zod.object({
   avatar: zod.string().optional(),
@@ -76,6 +75,12 @@ export default function Page(): React.JSX.Element {
   const router = useRouter();
   const { customerId } = useParams();
   const { user, userLoading } = useGetUser(customerId as unknown as number);
+  const { invoices, isLoading: invoicesLoading, error: invoicesError } = useGetInvoices(
+    {}, // filtres vides
+    'desc', // tri par défaut
+    1, // première page
+    10 // limite par défaut
+  );
 
   const [isEditingCustomer, setIsEditingCustomer] = React.useState(false);
   const [isEditingCustomerAddress, setIsEditingCustomerAddress] = React.useState(false);
@@ -144,7 +149,7 @@ export default function Page(): React.JSX.Element {
         toast.error(t('somethingWentWrong'));
       }
     },
-    [router, user, t]
+    [user, t]
   );
 
   return (
@@ -380,7 +385,8 @@ export default function Page(): React.JSX.Element {
                       </Grid>
                     </CardContent>
                   )}
-                  {isEditingCustomerAddress ? <CardActions sx={{ justifyContent: 'flex-end' }}>
+                  {isEditingCustomerAddress ? (
+                    <CardActions sx={{ justifyContent: 'flex-end' }}>
                       <Stack
                         direction="row"
                         justifyContent="flex-end"
@@ -400,7 +406,8 @@ export default function Page(): React.JSX.Element {
                           {t('cancel')}
                         </Button>
                       </Stack>
-                    </CardActions> : null}
+                    </CardActions>
+                  ) : null}
                 </Card>
               </form>
               <Card>
@@ -429,67 +436,28 @@ export default function Page(): React.JSX.Element {
           </Grid>
           <Grid lg={8} xs={12}>
             <Stack spacing={4}>
-              <Payments
-                ordersValue={2069.48}
-                payments={[
-                  {
-                    currency: 'USD',
-                    amount: 500,
-                    invoiceId: 'INV-005',
-                    status: t('status.completed'),
-                    createdAt: dayjs().subtract(5, 'minute').subtract(1, 'hour').toDate(),
-                  },
-                  {
-                    currency: 'USD',
-                    amount: 324.5,
-                    invoiceId: 'INV-004',
-                    status: t('status.refunded'),
-                    createdAt: dayjs().subtract(21, 'minute').subtract(2, 'hour').toDate(),
-                  },
-                  {
-                    currency: 'USD',
-                    amount: 746.5,
-                    invoiceId: 'INV-003',
-                    status: t('status.completed'),
-                    createdAt: dayjs().subtract(7, 'minute').subtract(3, 'hour').toDate(),
-                  },
-                  {
-                    currency: 'USD',
-                    amount: 56.89,
-                    invoiceId: 'INV-002',
-                    status: t('status.completed'),
-                    createdAt: dayjs().subtract(48, 'minute').subtract(4, 'hour').toDate(),
-                  },
-                  {
-                    currency: 'USD',
-                    amount: 541.59,
-                    invoiceId: 'INV-001',
-                    status: t('status.completed'),
-                    createdAt: dayjs().subtract(31, 'minute').subtract(5, 'hour').toDate(),
-                  },
-                ]}
-                refundsValue={324.5}
-                totalOrders={5}
-              />
-              <Notifications
-                notifications={[
-                  {
-                    id: 'EV-002',
-                    type: t('refundRequestApproved'),
-                    status: t('status.pending'),
-                    createdAt: dayjs().subtract(34, 'minute').subtract(5, 'hour').subtract(3, 'day').toDate(),
-                  },
-                  {
-                    id: 'EV-001',
-                    type: t('orderConfirmation'),
-                    status: t('status.delivered'),
-                    createdAt: dayjs().subtract(49, 'minute').subtract(11, 'hour').subtract(4, 'day').toDate(),
-                  },
-                ]}
-              />
+              {invoicesLoading ? (
+                <Typography>Chargement des factures...</Typography>
+              ) : invoicesError ? (
+                <Typography color="error">Erreur lors du chargement des factures: {invoicesError.message}</Typography>
+              ) : invoices && invoices.length > 0 ? (
+                <Payments
+                  ordersValue={invoices.reduce((sum, invoice) => sum + (invoice.amount || 0), 0)}
+                  payments={invoices.map(invoice => ({
+                    currency: 'EUR',
+                    amount: invoice.amount || 0,
+                    invoiceId: invoice.id ? `${invoice.id.toString()}` : 'N/A',
+                    status: invoice.status || 'unknown',
+                    createdAt: invoice.createdAt ? new Date(invoice.createdAt) : new Date(),
+                  }))}
+                  refundsValue={invoices.filter(inv => inv.status === 'refunded').reduce((sum, inv) => sum + (inv.amount || 0), 0)}
+                  totalOrders={invoices.length}
+                />
+              ) : (
+                <Typography>Aucune facture trouvée.</Typography>
+              )}
             </Stack>
           </Grid>
-
         </Grid>
       </Stack>
     </Box>

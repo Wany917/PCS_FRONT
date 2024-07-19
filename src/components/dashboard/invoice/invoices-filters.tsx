@@ -41,7 +41,6 @@ const schema = zod
       if (data.startDate && data.endDate) {
         return data.startDate <= data.endDate;
       }
-
       return true;
     },
     { message: 'End date should be greater than start date', path: ['endDate'] }
@@ -86,8 +85,6 @@ export function InvoicesFilters({
   const updateSearchParams = React.useCallback(
     (newFilters: Filters) => {
       const searchParams = new URLSearchParams();
-
-      // Keep view and sortDir as search params
 
       if (view) {
         searchParams.set('view', view);

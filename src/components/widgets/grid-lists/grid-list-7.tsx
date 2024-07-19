@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Unstable_Grid2';
 import Card from '@mui/material/Card';
@@ -9,82 +10,27 @@ import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
 import Avatar from '@mui/material/Avatar';
 import Stack from '@mui/material/Stack';
-import Divider from '@mui/material/Divider';
 import Chip from '@mui/material/Chip';
 import Modal from '@mui/material/Modal';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import { dayjs } from '@/lib/dayjs';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
 
 interface Prestation {
   id: number;
-  title: string;
+  name: string;
   description: string;
   amount: number;
   status: 'pending' | 'accepted' | 'in-progress' | 'completed' | 'rejected';
-  createdAt: Date;
+  createdAt: string;
   address: string; 
   location: string; 
   clientName: string; 
+  userId: number;
+  bookingId: number;
 }
-
-const samplePrestations: Prestation[] = [
-  {
-    id: 1,
-    title: 'Nettoyage après événement',
-    description: 'Nettoyage complet après une soirée privée',
-    amount: 100,
-    status: 'pending',
-    createdAt: dayjs().subtract(1, 'day').toDate(),
-    address: '123 Rue de Paris, Paris, France',
-    location: 'Paris',
-    clientName: 'Jean Dupont',
-  },
-  {
-    id: 2,
-    title: 'Transport de matériel',
-    description: 'Transport de matériel de bureau vers un nouvel emplacement',
-    amount: 200,
-    status: 'in-progress',
-    createdAt: dayjs().subtract(3, 'days').toDate(),
-    address: '456 Avenue des Champs-Élysées, Paris, France',
-    location: 'Paris',
-    clientName: 'Marie Curie',
-  },
-  {
-    id: 3,
-    title: 'Transport de matériel',
-    description: 'Transport de matériel de bureau vers un nouvel emplacement',
-    amount: 200,
-    status: 'accepted',
-    createdAt: dayjs().subtract(3, 'days').toDate(),
-    address: '789 Boulevard Saint-Germain, Paris, France',
-    location: 'Paris',
-    clientName: 'Albert Einstein',
-  },
-  {
-    id: 4,
-    title: 'Transport de matériel',
-    description: 'Transport de matériel de bureau vers un nouvel emplacement',
-    amount: 200,
-    status: 'completed',
-    createdAt: dayjs().subtract(3, 'days').toDate(),
-    address: '101 Rue de Rivoli, Paris, France',
-    location: 'Paris',
-    clientName: 'Isaac Newton',
-  },
-  {
-    id: 5,
-    title: 'Déménagement',
-    description: 'Déménagement complet avec emballage et transport',
-    amount: 500,
-    status: 'rejected',
-    createdAt: dayjs().subtract(2, 'days').toDate(),
-    address: '5 Boulevard Voltaire, Paris, France',
-    location: 'Paris',
-    clientName: 'Nicolas Tesla',
-  },
-];
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -104,12 +50,35 @@ const getStatusColor = (status: string) => {
 };
 
 export function GridList7(): React.JSX.Element {
-  const [prestations, setPrestations] = useState<Prestation[]>(samplePrestations);
+  const [prestations, setPrestations] = useState<Prestation[]>([]);
+  const [serviceRequests, setServiceRequests] = useState([]);
   const [selectedPrestation, setSelectedPrestation] = useState<Prestation | null>(null);
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<Prestation['status']>('pending');
   const [amount, setAmount] = useState<number>(0);
   const [comment, setComment] = useState<string>('');
+  const [filter, setFilter] = useState<'all' | 'pending' | 'accepted' | 'in-progress' | 'completed' | 'rejected'>('all');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchPrestations();
+  }, []);
+
+  const fetchPrestations = async () => {
+    setIsLoading(true);
+    try {
+      const response = await axios.get('/service_requests');
+      const data = Array.isArray(response.data) ? response.data : [];
+      setPrestations(data);
+      setServiceRequests(data); 
+    } catch (error) {
+      console.error('Error fetching prestations:', error);
+      setPrestations([]);
+      setServiceRequests([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (selectedPrestation) {
@@ -129,72 +98,103 @@ export function GridList7(): React.JSX.Element {
     setSelectedPrestation(null);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (selectedPrestation) {
-      const updatedPrestations = prestations.map((prest) =>
-        prest.id === selectedPrestation.id
-          ? { ...prest, status, amount }
-          : prest
-      );
-      setPrestations(updatedPrestations);
-      handleClose();
+      try {
+        const updatedPrestation = {
+          ...selectedPrestation,
+          status,
+          amount,
+        };
+        await axios.put(`/service_requests/${selectedPrestation.id}`, updatedPrestation);
+        fetchPrestations(); // Refresh the list after update
+        handleClose();
+      } catch (error) {
+        console.error('Error updating prestation:', error);
+      }
     }
   };
 
+  const handleDelete = async (id: number) => {
+    try {
+      await axios.delete(`/service_requests/${id}`);
+      fetchPrestations(); // Refresh the list after deletion
+    } catch (error) {
+      console.error('Error deleting prestation:', error);
+    }
+  };
+
+  const handleFilterChange = (event: React.SyntheticEvent, newValue: 'all' | 'pending' | 'accepted' | 'in-progress' | 'completed' | 'rejected') => {
+    setFilter(newValue);
+  };
+
+  const filteredPrestations = Array.isArray(prestations) 
+  ? (filter === 'all' 
+    ? prestations 
+    : prestations.filter(prestation => prestation.status === filter))
+  : [];
+
   return (
     <Box sx={{ bgcolor: 'var(--mui-palette-background-level1)', p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Prestation personnalisé
+      <Typography gutterBottom variant="h4">
+        Prestations personnalisées
       </Typography>
+      <Tabs aria-label="prestation filters" onChange={handleFilterChange} sx={{ mb: 2 }} value={filter}>
+        <Tab label="Toutes" value="all" />
+        <Tab label="En attente" value="pending" />
+        <Tab label="Acceptées" value="accepted" />
+        <Tab label="En cours" value="in-progress" />
+        <Tab label="Complétées" value="completed" />
+        <Tab label="Rejetées" value="rejected" />
+      </Tabs>
       <Grid container spacing={3}>
-        {prestations.map((prestation) => (
+        {filteredPrestations.map((prestation) => (
           <Grid key={prestation.id} md={4} sm={6} xs={12}>
-            <PrestationCard prestation={prestation} onClick={() => handleOpen(prestation)} />
+            <PrestationCard onClick={() => { handleOpen(prestation); }} onDelete={() => handleDelete(prestation.id)} prestation={prestation} />
           </Grid>
         ))}
       </Grid>
-      <Modal open={open} onClose={handleClose}>
+      <Modal onClose={handleClose} open={open}>
         <Box sx={{ bgcolor: 'background.paper', p: 4, borderRadius: 1, width: '80%', maxWidth: '600px', margin: 'auto', mt: 10 }}>
-          {selectedPrestation && (
-            <>
-              <Typography variant="h6">{selectedPrestation.title}</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ marginY: 2 }}>
+          {selectedPrestation ? <>
+              <Typography variant="h6">{selectedPrestation.name}</Typography>
+              <Typography color="text.secondary" sx={{ marginY: 2 }} variant="body2">
                 {selectedPrestation.description}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography color="text.secondary" variant="body2">
                 Client: {selectedPrestation.clientName}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography color="text.secondary" variant="body2">
                 Adresse: {selectedPrestation.address}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography color="text.secondary" variant="body2">
                 Emplacement: {selectedPrestation.location}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography color="text.secondary" variant="body2">
                 Montant actuel: {selectedPrestation.amount} €
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ marginBottom: 2 }}>
+              <Typography color="text.secondary" sx={{ marginBottom: 2 }} variant="body2">
                 Statut actuel:
-                <Chip label={selectedPrestation.status} color={getStatusColor(selectedPrestation.status)} sx={{ ml: 1 }} />
+                <Chip color={getStatusColor(selectedPrestation.status)} label={selectedPrestation.status} sx={{ ml: 1 }} />
               </Typography>
               <TextField
                 fullWidth
                 label="Nouveau montant"
+                onChange={(e) => { setAmount(Number(e.target.value)); }}
+                sx={{ marginBottom: 2 }}
                 type="number"
                 value={amount}
-                onChange={(e) => setAmount(Number(e.target.value))}
-                sx={{ marginBottom: 2 }}
               />
               <TextField
-                fullWidth
-                select
-                label="Nouveau statut"
-                value={status}
-                onChange={(e) => setStatus(e.target.value as Prestation['status'])}
                 SelectProps={{
                   native: true,
                 }}
+                fullWidth
+                label="Nouveau statut"
+                onChange={(e) => { setStatus(e.target.value as Prestation['status']); }}
+                select
                 sx={{ marginBottom: 2 }}
+                value={status}
               >
                 <option value="pending">En attente</option>
                 <option value="accepted">Accepté</option>
@@ -206,21 +206,20 @@ export function GridList7(): React.JSX.Element {
                 fullWidth
                 label="Commentaire"
                 multiline
+                onChange={(e) => { setComment(e.target.value); }}
                 rows={4}
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
                 sx={{ marginBottom: 2 }}
+                value={comment}
               />
               <Stack direction="row" spacing={2}>
-                <Button variant="contained" color="primary" onClick={handleSave}>
+                <Button color="primary" onClick={handleSave} variant="contained">
                   Enregistrer
                 </Button>
-                <Button variant="outlined" onClick={handleClose}>
+                <Button onClick={handleClose} variant="outlined">
                   Annuler
                 </Button>
               </Stack>
-            </>
-          )}
+            </> : null}
         </Box>
       </Modal>
     </Box>
@@ -230,12 +229,12 @@ export function GridList7(): React.JSX.Element {
 interface PrestationCardProps {
   prestation: Prestation;
   onClick: () => void;
+  onDelete: () => void;
 }
 
-function PrestationCard({ prestation, onClick }: PrestationCardProps): React.JSX.Element {
+function PrestationCard({ prestation, onClick, onDelete }: PrestationCardProps): React.JSX.Element {
   return (
     <Card
-      onClick={onClick}
       sx={{
         display: 'flex',
         flexDirection: 'column',
@@ -247,42 +246,43 @@ function PrestationCard({ prestation, onClick }: PrestationCardProps): React.JSX
         },
       }}
     >
-      <CardContent>
+      <CardContent onClick={onClick}>
         <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
-          <Avatar>{prestation.title.charAt(0)}</Avatar>
+          <Avatar>{prestation.name.charAt(0)}</Avatar>
           <div>
             <Typography color="text.primary" variant="subtitle1">
-              {prestation.title}
+              {prestation.name}
             </Typography>
             <Typography color="text.secondary" variant="body2">
               Créé {dayjs(prestation.createdAt).fromNow()}
             </Typography>
           </div>
         </Stack>
-        <Typography variant="body2" color="text.secondary" sx={{ marginY: 2 }}>
+        <Typography color="text.secondary" sx={{ marginY: 2 }} variant="body2">
           {prestation.description}
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography color="text.secondary" variant="body2">
           Client: {prestation.clientName}
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography color="text.secondary" variant="body2">
           Adresse: {prestation.address}
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography color="text.secondary" variant="body2">
           Emplacement: {prestation.location}
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography color="text.secondary" variant="body2">
           Montant: {prestation.amount} €
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography color="text.secondary" variant="body2">
           Statut:
           <Chip
-            label={prestation.status}
             color={getStatusColor(prestation.status)}
+            label={prestation.status}
             sx={{ ml: 1 }}
           />
         </Typography>
       </CardContent>
+      <Button color="error" onClick={onDelete}>Supprimer</Button>
     </Card>
   );
 }

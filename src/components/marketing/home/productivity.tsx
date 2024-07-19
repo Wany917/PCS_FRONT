@@ -2,6 +2,7 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import axios from 'axios';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Checkbox from '@mui/material/Checkbox';
@@ -13,7 +14,12 @@ import Typography from '@mui/material/Typography';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers';
-import differenceInDays from 'date-fns/differenceInDays';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemText from '@mui/material/ListItemText';
+import IconButton from '@mui/material/IconButton';
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 
 const cleaningFee = 8;
 const serviceFee = 13;
@@ -25,19 +31,41 @@ const prestations = [
   { id: 4, name: 'Service de petit déjeuner', price: 20 },
 ];
 
+interface ServiceRequest {
+  id: number;
+  name: string;
+  description: string;
+  amount: number;
+  user_id: number;
+  booking_id: number;
+}
+
 export function Productivity(): React.JSX.Element {
+  const router = useRouter();
+  const [reservationDetails, setReservationDetails] = useState<any>(null);
   const [selectedPrestations, setSelectedPrestations] = useState<number[]>([]);
   const [customPrestation, setCustomPrestation] = useState<string>('');
+  const [customPrestationPrice, setCustomPrestationPrice] = useState<number>(0);
   const [customDate, setCustomDate] = useState<Date | null>(null);
   const [customTime, setCustomTime] = useState<Date | null>(null);
-  const [customPrestationPrice, setCustomPrestationPrice] = useState<number>(0);
-  const [reservationDetails, setReservationDetails] = useState<any>(null);
-  const router = useRouter();
+  const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
+  const [newRequest, setNewRequest] = useState({ name: '', description: '', amount: 0 });
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   useEffect(() => {
     const details = JSON.parse(localStorage.getItem('reservationDetails') || '{}');
     setReservationDetails(details);
+    fetchServiceRequests();
   }, []);
+
+  const fetchServiceRequests = async () => {
+    try {
+      const response = await axios.get('/service_requests');
+      setServiceRequests(response.data);
+    } catch (error) {
+      console.error('Error fetching service requests:', error);
+    }
+  };
 
   const handleCheckboxChange = (id: number) => {
     setSelectedPrestations((prev) =>
@@ -58,7 +86,8 @@ export function Productivity(): React.JSX.Element {
     if (!reservationDetails) return 0;
     const totalPrestationPrice = calculateTotalPrestationPrice();
     const hotelTotalPrice = Number(reservationDetails.price) * reservationDetails.numberOfNights;
-    const total = totalPrestationPrice + hotelTotalPrice + cleaningFee + serviceFee + taxes;
+    const serviceRequestsTotal = serviceRequests.reduce((total, request) => total + (request.amount || 0), 0);
+    const total = totalPrestationPrice + hotelTotalPrice + cleaningFee + serviceFee + taxes + serviceRequestsTotal;
     return total;
   };
 
@@ -75,6 +104,7 @@ export function Productivity(): React.JSX.Element {
       ...reservationDetails,
       prestations: selectedPrestationNames,
       totalAmount: calculateTotalPrice(),
+      serviceRequests,
     };
 
     localStorage.setItem('reservationDetails', JSON.stringify(updatedReservationDetails));
@@ -83,13 +113,45 @@ export function Productivity(): React.JSX.Element {
     router.push('/validation');
   };
 
-  const handleBackClick = () => {
-    router.push('/');
-  };
-
   const handleBackToHeroClick = () => {
     const heroId = reservationDetails?.id || '1';
     router.push(`/${heroId}`);
+  };
+
+  const handleCreateRequest = async () => {
+    try {
+      const response = await axios.post('/service_requests', {
+        ...newRequest,
+        user_id: reservationDetails.userId,
+        booking_id: reservationDetails.id,
+      });
+      setServiceRequests([...serviceRequests, response.data]);
+      setNewRequest({ name: '', description: '', amount: 0 });
+    } catch (error) {
+      console.error('Error creating service request:', error);
+    }
+  };
+
+  const handleUpdateRequest = async (id: number) => {
+    try {
+      const requestToUpdate = serviceRequests.find(req => req.id === id);
+      if (!requestToUpdate) return;
+
+      const response = await axios.put(`/service_requests/${id}`, requestToUpdate);
+      setServiceRequests(serviceRequests.map(req => req.id === id ? response.data : req));
+      setEditingId(null);
+    } catch (error) {
+      console.error('Error updating service request:', error);
+    }
+  };
+
+  const handleDeleteRequest = async (id: number) => {
+    try {
+      await axios.delete(`/service_requests/${id}`);
+      setServiceRequests(serviceRequests.filter(req => req.id !== id));
+    } catch (error) {
+      console.error('Error deleting service request:', error);
+    }
   };
 
   if (!reservationDetails) {
@@ -99,55 +161,55 @@ export function Productivity(): React.JSX.Element {
   return (
     <Container maxWidth="md" sx={{ py: 4, position: 'relative' }}>
       <Stack direction="row" justifyContent="flex-start" sx={{ mb: 2 }}>
-        <Button variant="contained" onClick={handleBackToHeroClick}>
+        <Button onClick={handleBackToHeroClick} variant="contained">
           Page Précédente
         </Button>
       </Stack>
-      <Typography variant="h4" sx={{ mb: 4 }}>
+      <Typography sx={{ mb: 4 }} variant="h4">
         Sélectionnez vos prestations
       </Typography>
       <Stack spacing={2}>
         {prestations.map((prestation) => (
           <FormControlLabel
-            key={prestation.id}
             control={
               <Checkbox
                 checked={selectedPrestations.includes(prestation.id)}
-                onChange={() => handleCheckboxChange(prestation.id)}
+                onChange={() => { handleCheckboxChange(prestation.id); }}
               />
             }
+            key={prestation.id}
             label={`${prestation.name} - ${prestation.price} €`}
           />
         ))}
         <Box>
           <Typography variant="h6">Ajouter une prestation personnalisée</Typography>
           <TextField
-            label="Prestation"
-            value={customPrestation}
-            onChange={(e) => setCustomPrestation(e.target.value)}
             fullWidth
+            label="Prestation"
+            onChange={(e) => { setCustomPrestation(e.target.value); }}
             sx={{ mb: 2 }}
+            value={customPrestation}
           />
           <TextField
+            fullWidth
             label="Prix"
+            onChange={(e) => { setCustomPrestationPrice(Number(e.target.value)); }}
+            sx={{ mb: 2 }}
             type="number"
             value={customPrestationPrice}
-            onChange={(e) => setCustomPrestationPrice(Number(e.target.value))}
-            fullWidth
-            sx={{ mb: 2 }}
           />
           <LocalizationProvider dateAdapter={AdapterDateFns}>
             <DateTimePicker
               label="Date et heure"
-              value={customDate}
               onChange={setCustomDate}
               renderInput={(params) => <TextField {...params} sx={{ mb: 2 }} />}
+              value={customDate}
             />
             <DateTimePicker
               label="Heure"
-              value={customTime}
               onChange={setCustomTime}
               renderInput={(params) => <TextField {...params} sx={{ mb: 2 }} />}
+              value={customTime}
             />
           </LocalizationProvider>
         </Box>
@@ -169,10 +231,61 @@ export function Productivity(): React.JSX.Element {
         <Typography variant="h6">
           Total: {calculateTotalPrice()} €
         </Typography>
-        <Button variant="contained" color="primary" onClick={handleReserveClick}>
+        <Button color="primary" onClick={handleReserveClick} variant="contained">
           Réserver
         </Button>
       </Stack>
+      
+      <Box sx={{ mt: 4 }}>
+        <Typography variant="h5">Demandes de service</Typography>
+        <Box sx={{ my: 2 }}>
+          <TextField
+            fullWidth
+            label="Nom"
+            onChange={(e) => { setNewRequest({ ...newRequest, name: e.target.value }); }}
+            sx={{ mb: 1 }}
+            value={newRequest.name}
+          />
+          <TextField
+            fullWidth
+            label="Description"
+            onChange={(e) => { setNewRequest({ ...newRequest, description: e.target.value }); }}
+            sx={{ mb: 1 }}
+            value={newRequest.description}
+          />
+          <TextField
+            fullWidth
+            label="Montant"
+            onChange={(e) => { setNewRequest({ ...newRequest, amount: Number(e.target.value) }); }}
+            sx={{ mb: 1 }}
+            type="number"
+            value={newRequest.amount}
+          />
+          <Button onClick={handleCreateRequest} variant="contained">Ajouter une demande</Button>
+        </Box>
+        <List>
+          {serviceRequests.map((request) => (
+            <ListItem
+              key={request.id}
+              secondaryAction={
+                <>
+                  <IconButton aria-label="edit" edge="end" onClick={() => { setEditingId(request.id); }}>
+                    <EditIcon />
+                  </IconButton>
+                  <IconButton aria-label="delete" edge="end" onClick={() => handleDeleteRequest(request.id)}>
+                    <DeleteIcon />
+                  </IconButton>
+                </>
+              }
+            >
+              <ListItemText
+                primary={request.name}
+                secondary={`${request.description} - ${request.amount}€`}
+              />
+            </ListItem>
+          ))}
+        </List>
+      </Box>
     </Container>
   );
 }
