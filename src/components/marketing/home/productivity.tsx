@@ -61,9 +61,11 @@ export function Productivity(): React.JSX.Element {
   const fetchServiceRequests = async () => {
     try {
       const response = await axios.get('/service_requests');
-      setServiceRequests(response.data);
+      const data = Array.isArray(response.data) ? response.data : [];
+      setServiceRequests(data);
     } catch (error) {
       console.error('Error fetching service requests:', error);
+      setServiceRequests([]);
     }
   };
 
@@ -86,7 +88,9 @@ export function Productivity(): React.JSX.Element {
     if (!reservationDetails) return 0;
     const totalPrestationPrice = calculateTotalPrestationPrice();
     const hotelTotalPrice = Number(reservationDetails.price) * reservationDetails.numberOfNights;
-    const serviceRequestsTotal = serviceRequests.reduce((total, request) => total + (request.amount || 0), 0);
+    const serviceRequestsTotal = Array.isArray(serviceRequests)
+      ? serviceRequests.reduce((total, request) => total + (request.amount || 0), 0)
+      : 0;
     const total = totalPrestationPrice + hotelTotalPrice + cleaningFee + serviceFee + taxes + serviceRequestsTotal;
     return total;
   };
@@ -264,7 +268,7 @@ export function Productivity(): React.JSX.Element {
           <Button onClick={handleCreateRequest} variant="contained">Ajouter une demande</Button>
         </Box>
         <List>
-          {serviceRequests.map((request) => (
+          {Array.isArray(serviceRequests) && serviceRequests.map((request) => (
             <ListItem
               key={request.id}
               secondaryAction={

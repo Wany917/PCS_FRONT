@@ -1,5 +1,3 @@
-'use client';
-
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
@@ -51,7 +49,7 @@ const getStatusColor = (status: string) => {
 
 export function GridList7(): React.JSX.Element {
   const [prestations, setPrestations] = useState<Prestation[]>([]);
-  const [serviceRequests, setServiceRequests] = useState([]);
+  const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
   const [selectedPrestation, setSelectedPrestation] = useState<Prestation | null>(null);
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<Prestation['status']>('pending');
